@@ -1,0 +1,48 @@
+{
+  "training_years": [
+    2018,
+    2019,
+    2020,
+    2021,
+    2022
+  ],
+  "ndvi_scale_mode": "scaled_int",
+  "features": {
+    "ndvi16": {
+      "preprocess": "ndvi_scaled_to_unit",
+      "min_train": 0.0,
+      "max_train": 0.9876000285148621,
+      "notes": "min max computed from training years after preprocessing"
+    },
+    "temp16": {
+      "preprocess": "identity",
+      "min_train": -26.252214431762695,
+      "max_train": 32.92648696899414,
+      "notes": "min max computed from training years after preprocessing"
+    },
+    "precip16": {
+      "preprocess": "log1p",
+      "min_train": 0.007691801525652409,
+      "max_train": 6.582995891571045,
+      "notes": "min max computed from training years after preprocessing"
+    },
+    "rh16": {
+      "preprocess": "divide_by_100",
+      "min_train": 0.16675923764705658,
+      "max_train": 0.975849449634552,
+      "notes": "min max computed from training years after preprocessing"
+    },
+    "elevation": {
+      "preprocess": "identity",
+      "min_train": 62.0,
+      "max_train": 8364.0,
+      "notes": "min max from masked static raster"
+    },
+    "slope": {
+      "preprocess": "identity",
+      "min_train": 0.0,
+      "max_train": 71.93864440917969,
+      "notes": "min max from masked static raster"
+    }
+  }
+}

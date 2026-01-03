@@ -1,46 +1,67 @@
 import pandas as pd
+from pathlib import Path
 
-# 1) Change these paths
-INPUT_CSV = "fireData.csv"
-OUTPUT_CSV = "fire_2018_nepal_clean_conf50.csv"
+# ==============================
+# CONFIG
+# ==============================
+INPUT_ARCHIVE = Path("/Users/sammit/Desktop/Projects/Prometheus/GEE_code/Fire-Data/fire_archive_M-C61_701611.csv")
+INPUT_NRT     = Path("/Users/sammit/Desktop/Projects/Prometheus/GEE_code/Fire-Data/fire_nrt_M-C61_701611.csv")
 
-# 2) Load CSV
-df = pd.read_csv(INPUT_CSV)
+OUTPUT_CSV = Path("/Users/sammit/Desktop/Projects/Prometheus/GEE_code/Fire-Data/firms_clean_2018_2025.csv")
 
-# 3) Keep only required columns
-keep_cols = ["latitude", "longitude", "acq_date", "confidence"]
-missing = [c for c in keep_cols if c not in df.columns]
-if missing:
-    raise ValueError(f"Missing required columns: {missing}")
-
-df = df[keep_cols].copy()
-
-# 4) Parse date
-df["acq_date"] = pd.to_datetime(df["acq_date"], errors="coerce")
-
-# Drop rows with bad dates or missing coordinates
-df = df.dropna(subset=["acq_date", "latitude", "longitude", "confidence"])
-
-# 5) Ensure numeric confidence
-df["confidence"] = pd.to_numeric(df["confidence"], errors="coerce")
-df = df.dropna(subset=["confidence"])
-
-# 6) Filter date range
-start_date = pd.Timestamp("2018-03-01")
-end_date = pd.Timestamp("2018-05-31")
-df = df[(df["acq_date"] >= start_date) & (df["acq_date"] <= end_date)]
-
-# 7) Filter confidence
 CONF_THRESHOLD = 50
-df = df[df["confidence"] >= CONF_THRESHOLD]
 
-# 8) Optional: remove duplicate detections at same lat, long, date
-df = df.drop_duplicates(subset=["latitude", "longitude", "acq_date", "confidence"])
+KEEP_COLS = ["latitude", "longitude", "acq_date", "confidence"]
 
-# 9) Save clean CSV
-df.to_csv(OUTPUT_CSV, index=False)
+def load_csv(path: Path) -> pd.DataFrame:
+    if not path.exists():
+        raise FileNotFoundError(path)
+    return pd.read_csv(path)
 
-print("Saved:", OUTPUT_CSV)
-print("Rows after cleaning:", len(df))
-print("Date range:", df["acq_date"].min(), "to", df["acq_date"].max())
-print("Confidence range:", df["confidence"].min(), "to", df["confidence"].max())
+def main():
+    # Load both files
+    df_archive = load_csv(INPUT_ARCHIVE)
+    df_nrt     = load_csv(INPUT_NRT)
+
+    print("Archive rows:", len(df_archive))
+    print("NRT rows:", len(df_nrt))
+
+    # Merge
+    df = pd.concat([df_archive, df_nrt], ignore_index=True)
+
+    print("Merged rows:", len(df))
+
+    # Keep only required columns
+    df = df[KEEP_COLS]
+
+    # Drop missing values
+    df = df.dropna(subset=KEEP_COLS)
+
+    # Convert types
+    df["acq_date"] = pd.to_datetime(df["acq_date"], errors="coerce")
+    df["confidence"] = pd.to_numeric(df["confidence"], errors="coerce")
+
+    df = df.dropna(subset=["acq_date", "confidence"])
+
+    # Confidence filter
+    df = df[df["confidence"] >= CONF_THRESHOLD]
+
+    # Remove exact duplicates (important)
+    df = df.drop_duplicates(
+        subset=["latitude", "longitude", "acq_date", "confidence"]
+    )
+
+    # Sort chronologically
+    df = df.sort_values("acq_date").reset_index(drop=True)
+
+    # Save
+    OUTPUT_CSV.parent.mkdir(parents=True, exist_ok=True)
+    df.to_csv(OUTPUT_CSV, index=False)
+
+    print("Final cleaned rows:", len(df))
+    print("Date range:")
+    print(df["acq_date"].min(), "→", df["acq_date"].max())
+    print("Saved to:", OUTPUT_CSV)
+
+if __name__ == "__main__":
+    main()
