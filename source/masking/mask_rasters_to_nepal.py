@@ -13,7 +13,7 @@ if MASK_PATH is None:
 INPUT_ROOT = PROJECT_ROOT / "data_raw"
 OUTPUT_ROOT = PROJECT_ROOT / "data_processed"
 
-VARS_YEARLY = ["ndvi16", "temp16", "precip16", "rh16"]
+VARS_YEARLY = ["ndvi16", "temp16", "precip16", "rh16", "vpd16"]
 STATIC_DIR = "static"
 
 NODATA_VALUE = -9999.0
