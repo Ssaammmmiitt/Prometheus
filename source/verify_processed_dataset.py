@@ -5,7 +5,7 @@ import rasterio
 
 ROOT = Path("/Users/sammit/Desktop/Projects/Prometheus/data_processed")
 
-VARS = ["ndvi16", "temp16", "precip16", "rh16"]
+VARS = ["ndvi16", "temp16", "precip16", "rh16","vpd16"]
 YEARS = [str(y) for y in range(2018, 2026)]
 
 PAT = re.compile(r"^(?P<var>[a-z0-9]+)_(?P<year>\d{4})_(?P<date>\d{8})\.(tif|tiff)$", re.IGNORECASE)

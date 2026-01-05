@@ -19,7 +19,7 @@ MASK_PATH = PROJECT_ROOT / "data_raw" / "mask" / "nepal_mask_1km_roiAligned.tif"
 
 TRAIN_YEARS = [2018, 2019, 2020, 2021, 2022]
 
-VARS_YEARLY = ["ndvi16", "temp16", "precip16", "rh16"]
+VARS_YEARLY = ["ndvi16", "temp16", "precip16", "rh16", "vpd16"]
 STATIC_FILES = {
     "elevation": IN_ROOT / "static" / "elevation_static_srtm.tif",
     "slope": IN_ROOT / "static" / "slope_static_srtm.tif",
@@ -202,7 +202,7 @@ def make_preprocess_ndvi(scale_mode: str):
             out[~keep] = np.nan
             out = out / 10000.0
         else:
-            keep = np.isfinite(out) & (out >= 0.0) & (out <= 1.5)
+            keep = np.isfinite(out) & (out >= 0.0) & (out <= 1.0)
             out[~keep] = np.nan
             out = np.clip(out, 0.0, 1.0)
 
@@ -227,9 +227,7 @@ def write_raster(out_path: Path, arr01: np.ndarray, ref_profile: dict):
     with rasterio.open(out_path, "w", **profile) as dst:
         dst.write(out, 1)
 
-# =========================
 # MAIN
-# =========================
 def main():
     ensure_dir(REPORT_ROOT)
     tag = now_tag()
@@ -286,6 +284,7 @@ def main():
         "temp16": preprocess_identity,
         "precip16": preprocess_precip,
         "rh16": preprocess_rh,
+        "vpd16": preprocess_identity
     }
 
     # Compute training stats and min max for each variable
@@ -444,7 +443,7 @@ def main():
     # Post check on a small sample to confirm 0..1 ranges
     log("Post normalization spot checks")
     spot_rows = []
-    for var in ["ndvi16", "temp16", "precip16", "rh16"]:
+    for var in ["ndvi16", "temp16", "precip16", "rh16", "vpd16"]:
         # pick first available year and first file
         year_dirs = list_year_dirs(var)
         if not year_dirs:
