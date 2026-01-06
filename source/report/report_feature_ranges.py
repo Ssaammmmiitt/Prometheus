@@ -7,7 +7,7 @@ import rasterio
 
 ROOT = Path("/Users/sammit/Desktop/Projects/Prometheus/data_processed")
 
-VARS_YEARLY = ["ndvi16", "temp16", "precip16", "rh16", "fire16"]
+VARS_YEARLY = ["ndvi16", "temp16", "precip16", "rh16", "fire16","vpd16"]
 STATIC_DIR = "static"
 STATIC_FILES = [
     ("elevation", "elevation_static_srtm.tif"),
