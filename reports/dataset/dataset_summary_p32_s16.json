@@ -7,7 +7,17 @@
     4,
     5
   ],
-  "years_included": [
+  "years_scanned": [
+    2018,
+    2019,
+    2020,
+    2021,
+    2022,
+    2023,
+    2024,
+    2025
+  ],
+  "years_used": [
     2018,
     2019,
     2020,
@@ -30,5 +40,14 @@
     "2023": 9408,
     "2024": 9408,
     "2025": 9408
-  }
+  },
+  "skips_missing_feature_triplet": 0,
+  "skips_missing_fire_t4": 0,
+  "features_validated": [
+    "ndvi16",
+    "temp16",
+    "precip16",
+    "rh16",
+    "vpd16"
+  ]
 }
