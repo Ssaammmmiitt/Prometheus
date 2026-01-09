@@ -199,6 +199,8 @@ SUMMARY_JSON = REPORT_DIR / "dataset_summary_p32_s16.json"
 LOG_FILE = REPORT_DIR / "dataset_log_p32_s16.txt"
 
 FEATURE_VARS = ["ndvi16", "temp16", "precip16", "rh16", "vpd16"]
+VALID_RATIO_THRESHOLD = 0.5
+
 
 # =========================
 # HELPERS
@@ -304,11 +306,25 @@ def main():
 
             with rasterio.open(fire_path) as fire_src:
                 fire_arr = fire_src.read(1)
+                
+            ndvi_path = DATA_NORM / "ndvi16" / str(year) / f"ndvi16_{year}_{t4}.tif"
+            with rasterio.open(ndvi_path) as ndvi_src:
+                ndvi_arr = ndvi_src.read(1)
+
 
             for r in rows:
                 for c in cols:
-                    patch = fire_arr[r:r+PATCH_SIZE, c:c+PATCH_SIZE]
-                    has_fire = int(np.any(patch == 1))
+
+                    # --- NDVI validity check ---
+                    ndvi_patch = ndvi_arr[r:r+PATCH_SIZE, c:c+PATCH_SIZE]
+                    valid_ratio = np.mean(ndvi_patch != -9999)
+
+                    if valid_ratio < VALID_RATIO_THRESHOLD:
+                        continue
+
+                    # --- Fire label ---
+                    fire_patch = fire_arr[r:r+PATCH_SIZE, c:c+PATCH_SIZE]
+                    has_fire = int(np.any(fire_patch == 1))
 
                     index_rows.append({
                         "year": year,
@@ -318,7 +334,8 @@ def main():
                         "t4": t4,
                         "patch_row": r,
                         "patch_col": c,
-                        "has_fire": has_fire
+                        "has_fire": has_fire,
+                        "valid_ratio": float(valid_ratio)
                     })
 
                     total_samples += 1
@@ -329,6 +346,7 @@ def main():
                         fire_patches += 1
                     else:
                         non_fire_patches += 1
+
 
         if year_had_any:
             years_used.append(year)
