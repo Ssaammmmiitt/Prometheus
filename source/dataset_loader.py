@@ -13,13 +13,11 @@ class FireConvLSTMDataset(Dataset):
         fire_root,
         variables,
         patch_size=32,
-        valid_ratio_threshold=0.5
     ):
         self.data_root = Path(data_root)
         self.fire_root = Path(fire_root)
         self.variables = variables
         self.patch = patch_size
-        self.valid_ratio_threshold = valid_ratio_threshold
 
         # Force timestep columns to string so you never get ".0" in filenames
         # Adjust these names if your CSV uses different column names
@@ -88,10 +86,10 @@ class FireConvLSTMDataset(Dataset):
         X_np = np.stack(frames, axis=0)  # (T, C, H, W)
 
         # Valid ratio check using NDVI at t1, treating -9999 as invalid
-        ndvi_t1 = X_np[0, 0]
-        valid_ratio = float(np.mean(ndvi_t1 != -9999.0))
-        if valid_ratio < self.valid_ratio_threshold:
-            print("Low valid NDVI ratio:", valid_ratio, "year:", year, "t1:", row.t1, "r:", r, "c:", c)
+        # ndvi_t1 = X_np[0, 0]
+        # valid_ratio = float(np.mean(ndvi_t1 != -9999.0))
+        # if valid_ratio < self.valid_ratio_threshold:
+        #     print("Low valid NDVI ratio:", valid_ratio, "year:", year, "t1:", row.t1, "r:", r, "c:", c)
 
         # Replace -9999 with 0 so tensors stay within [0, 1] after normalization
         X_np = X_np.astype(np.float32)
@@ -115,33 +113,51 @@ class FireConvLSTMDataset(Dataset):
             raise AssertionError(f"Input out of [0,1] range. min={xmin}, max={xmax}")
 
         return X, y
+    
+
+if __name__ == "__main__":
+    ds = FireConvLSTMDataset(
+        index_csv="/Users/sammit/Desktop/Projects/Prometheus/reports/dataset/dataset_index_p32_s16.csv",
+        data_root="/Users/sammit/Desktop/Projects/Prometheus/data_processed_normalized",
+        fire_root="/Users/sammit/Desktop/Projects/Prometheus/data_processed/fire16",
+        variables=["ndvi16","temp16","precip16","rh16","vpd16","elevation","slope"]
+    )
+
+    X, y = ds[0]
+    print(X.shape)
+    print(y.shape)
+    print(X.min().item(), X.max().item())
+    print(torch.unique(y))
 
 
-ds = FireConvLSTMDataset(
-    index_csv="/Users/sammit/Desktop/Projects/Prometheus/reports/dataset/dataset_index_p32_s16.csv",
-    data_root="/Users/sammit/Desktop/Projects/Prometheus/data_processed_normalized",
-    fire_root="/Users/sammit/Desktop/Projects/Prometheus/data_processed/fire16",
-    variables=["ndvi16","temp16","precip16","rh16","vpd16","elevation","slope"]
-)
 
-X, y = ds[0]
-print(X.shape)  # (3, 7, 32, 32)
-print(y.shape)  # (32, 32)
-print(X.min().item(), X.max().item())
-print(torch.unique(y))
+# ds = FireConvLSTMDataset(
+#     index_csv="/Users/sammit/Desktop/Projects/Prometheus/reports/dataset/dataset_index_p32_s16.csv",
+#     data_root="/Users/sammit/Desktop/Projects/Prometheus/data_processed_normalized",
+#     fire_root="/Users/sammit/Desktop/Projects/Prometheus/data_processed/fire16",
+#     variables=["ndvi16","temp16","precip16","rh16","vpd16","elevation","slope"]
+# )
+
+# X, y = ds[0]
+# print(X.shape)  # (3, 7, 32, 32)
+# print(y.shape)  # (32, 32)
+# print(X.min().item(), X.max().item())
+# print(torch.unique(y))
 
 
-fire_found = 0
-nonfire_found = 0
+# fire_found = 0
+# nonfire_found = 0
 
-for i in range(200):
-    X, y = ds[i]
-    s = float(y.sum().item())
-    if s > 0:
-        fire_found += 1
-    else:
-        nonfire_found += 1
+# for i in range(200):
+#     X, y = ds[i]
+#     s = float(y.sum().item())
+#     if s > 0:
+#         fire_found += 1
+#     else:
+#         nonfire_found += 1
 
-print("First 200 samples")
-print("fire patches:", fire_found)
-print("non fire patches:", nonfire_found)
+# print("First 200 samples")
+# print("fire patches:", fire_found)
+# print("non fire patches:", nonfire_found)
+
+
