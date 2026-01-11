@@ -1,0 +1,659 @@
+{
+  "files_total": 482,
+  "files_ok": 482,
+  "files_failed": 0,
+  "data": {
+    "files": 402,
+    "suspect_pixels_total": 208751150,
+    "eq_minus9999_total": 104375575,
+    "eq_nodata_total": 104375575,
+    "nan_total": 0,
+    "inf_total": 0,
+    "max_suspect_pct": 136.8100358422939,
+    "mean_suspect_pct": 122.44894068611855
+  },
+  "fire": {
+    "files": 80,
+    "suspect_pixels_total": 33905805,
+    "eq_minus9999_total": 0,
+    "eq_nodata_total": 33905805,
+    "nan_total": 0,
+    "inf_total": 0,
+    "max_suspect_pct": 99.99976419543482,
+    "mean_suspect_pct": 99.9392950622524
+  },
+  "worst_30_by_suspect_pct": [
+    {
+      "kind": "data",
+      "var": "ndvi16",
+      "year": "2019",
+      "filename": "ndvi16_2019_20190218.tif",
+      "suspect_pct": 136.8100358422939,
+      "eq_minus9999_count": 290092,
+      "eq_nodata_count": 290092,
+      "nan_count": 0,
+      "inf_count": 0,
+      "path": "/Users/sammit/Desktop/Projects/Prometheus/data_processed_normalized/ndvi16/2019/ndvi16_2019_20190218.tif"
+    },
+    {
+      "kind": "data",
+      "var": "ndvi16",
+      "year": "2019",
+      "filename": "ndvi16_2019_20190202.tif",
+      "suspect_pct": 136.53697415581965,
+      "eq_minus9999_count": 289513,
+      "eq_nodata_count": 289513,
+      "nan_count": 0,
+      "inf_count": 0,
+      "path": "/Users/sammit/Desktop/Projects/Prometheus/data_processed_normalized/ndvi16/2019/ndvi16_2019_20190202.tif"
+    },
+    {
+      "kind": "data",
+      "var": "ndvi16",
+      "year": "2019",
+      "filename": "ndvi16_2019_20190306.tif",
+      "suspect_pct": 136.2719298245614,
+      "eq_minus9999_count": 288951,
+      "eq_nodata_count": 288951,
+      "nan_count": 0,
+      "inf_count": 0,
+      "path": "/Users/sammit/Desktop/Projects/Prometheus/data_processed_normalized/ndvi16/2019/ndvi16_2019_20190306.tif"
+    },
+    {
+      "kind": "data",
+      "var": "ndvi16",
+      "year": "2020",
+      "filename": "ndvi16_2020_20200117.tif",
+      "suspect_pct": 135.93944538766272,
+      "eq_minus9999_count": 288246,
+      "eq_nodata_count": 288246,
+      "nan_count": 0,
+      "inf_count": 0,
+      "path": "/Users/sammit/Desktop/Projects/Prometheus/data_processed_normalized/ndvi16/2020/ndvi16_2020_20200117.tif"
+    },
+    {
+      "kind": "data",
+      "var": "ndvi16",
+      "year": "2020",
+      "filename": "ndvi16_2020_20200305.tif",
+      "suspect_pct": 135.74419920769665,
+      "eq_minus9999_count": 287832,
+      "eq_nodata_count": 287832,
+      "nan_count": 0,
+      "inf_count": 0,
+      "path": "/Users/sammit/Desktop/Projects/Prometheus/data_processed_normalized/ndvi16/2020/ndvi16_2020_20200305.tif"
+    },
+    {
+      "kind": "data",
+      "var": "ndvi16",
+      "year": "2022",
+      "filename": "ndvi16_2022_20220202.tif",
+      "suspect_pct": 135.65223542727787,
+      "eq_minus9999_count": 287637,
+      "eq_nodata_count": 287637,
+      "nan_count": 0,
+      "inf_count": 0,
+      "path": "/Users/sammit/Desktop/Projects/Prometheus/data_processed_normalized/ndvi16/2022/ndvi16_2022_20220202.tif"
+    },
+    {
+      "kind": "data",
+      "var": "ndvi16",
+      "year": "2022",
+      "filename": "ndvi16_2022_20220101.tif",
+      "suspect_pct": 135.5032069420864,
+      "eq_minus9999_count": 287321,
+      "eq_nodata_count": 287321,
+      "nan_count": 0,
+      "inf_count": 0,
+      "path": "/Users/sammit/Desktop/Projects/Prometheus/data_processed_normalized/ndvi16/2022/ndvi16_2022_20220101.tif"
+    },
+    {
+      "kind": "data",
+      "var": "ndvi16",
+      "year": "2019",
+      "filename": "ndvi16_2019_20190322.tif",
+      "suspect_pct": 135.44378419166196,
+      "eq_minus9999_count": 287195,
+      "eq_nodata_count": 287195,
+      "nan_count": 0,
+      "inf_count": 0,
+      "path": "/Users/sammit/Desktop/Projects/Prometheus/data_processed_normalized/ndvi16/2019/ndvi16_2019_20190322.tif"
+    },
+    {
+      "kind": "data",
+      "var": "ndvi16",
+      "year": "2022",
+      "filename": "ndvi16_2022_20220117.tif",
+      "suspect_pct": 134.75476325221658,
+      "eq_minus9999_count": 285734,
+      "eq_nodata_count": 285734,
+      "nan_count": 0,
+      "inf_count": 0,
+      "path": "/Users/sammit/Desktop/Projects/Prometheus/data_processed_normalized/ndvi16/2022/ndvi16_2022_20220117.tif"
+    },
+    {
+      "kind": "data",
+      "var": "ndvi16",
+      "year": "2020",
+      "filename": "ndvi16_2020_20200321.tif",
+      "suspect_pct": 134.5816827013771,
+      "eq_minus9999_count": 285367,
+      "eq_nodata_count": 285367,
+      "nan_count": 0,
+      "inf_count": 0,
+      "path": "/Users/sammit/Desktop/Projects/Prometheus/data_processed_normalized/ndvi16/2020/ndvi16_2020_20200321.tif"
+    },
+    {
+      "kind": "data",
+      "var": "ndvi16",
+      "year": "2020",
+      "filename": "ndvi16_2020_20200218.tif",
+      "suspect_pct": 134.48358800226373,
+      "eq_minus9999_count": 285159,
+      "eq_nodata_count": 285159,
+      "nan_count": 0,
+      "inf_count": 0,
+      "path": "/Users/sammit/Desktop/Projects/Prometheus/data_processed_normalized/ndvi16/2020/ndvi16_2020_20200218.tif"
+    },
+    {
+      "kind": "data",
+      "var": "ndvi16",
+      "year": "2022",
+      "filename": "ndvi16_2022_20220218.tif",
+      "suspect_pct": 134.2572156196944,
+      "eq_minus9999_count": 284679,
+      "eq_nodata_count": 284679,
+      "nan_count": 0,
+      "inf_count": 0,
+      "path": "/Users/sammit/Desktop/Projects/Prometheus/data_processed_normalized/ndvi16/2022/ndvi16_2022_20220218.tif"
+    },
+    {
+      "kind": "data",
+      "var": "ndvi16",
+      "year": "2020",
+      "filename": "ndvi16_2020_20200101.tif",
+      "suspect_pct": 134.17892850405585,
+      "eq_minus9999_count": 284513,
+      "eq_nodata_count": 284513,
+      "nan_count": 0,
+      "inf_count": 0,
+      "path": "/Users/sammit/Desktop/Projects/Prometheus/data_processed_normalized/ndvi16/2020/ndvi16_2020_20200101.tif"
+    },
+    {
+      "kind": "data",
+      "var": "ndvi16",
+      "year": "2020",
+      "filename": "ndvi16_2020_20200202.tif",
+      "suspect_pct": 134.16006413884173,
+      "eq_minus9999_count": 284473,
+      "eq_nodata_count": 284473,
+      "nan_count": 0,
+      "inf_count": 0,
+      "path": "/Users/sammit/Desktop/Projects/Prometheus/data_processed_normalized/ndvi16/2020/ndvi16_2020_20200202.tif"
+    },
+    {
+      "kind": "data",
+      "var": "ndvi16",
+      "year": "2019",
+      "filename": "ndvi16_2019_20190407.tif",
+      "suspect_pct": 134.05065082059988,
+      "eq_minus9999_count": 284241,
+      "eq_nodata_count": 284241,
+      "nan_count": 0,
+      "inf_count": 0,
+      "path": "/Users/sammit/Desktop/Projects/Prometheus/data_processed_normalized/ndvi16/2019/ndvi16_2019_20190407.tif"
+    },
+    {
+      "kind": "data",
+      "var": "ndvi16",
+      "year": "2020",
+      "filename": "ndvi16_2020_20200406.tif",
+      "suspect_pct": 132.97396717600452,
+      "eq_minus9999_count": 281958,
+      "eq_nodata_count": 281958,
+      "nan_count": 0,
+      "inf_count": 0,
+      "path": "/Users/sammit/Desktop/Projects/Prometheus/data_processed_normalized/ndvi16/2020/ndvi16_2020_20200406.tif"
+    },
+    {
+      "kind": "data",
+      "var": "ndvi16",
+      "year": "2022",
+      "filename": "ndvi16_2022_20220306.tif",
+      "suspect_pct": 132.79098283342765,
+      "eq_minus9999_count": 281570,
+      "eq_nodata_count": 281570,
+      "nan_count": 0,
+      "inf_count": 0,
+      "path": "/Users/sammit/Desktop/Projects/Prometheus/data_processed_normalized/ndvi16/2022/ndvi16_2022_20220306.tif"
+    },
+    {
+      "kind": "data",
+      "var": "ndvi16",
+      "year": "2020",
+      "filename": "ndvi16_2020_20200422.tif",
+      "suspect_pct": 132.65468779475572,
+      "eq_minus9999_count": 281281,
+      "eq_nodata_count": 281281,
+      "nan_count": 0,
+      "inf_count": 0,
+      "path": "/Users/sammit/Desktop/Projects/Prometheus/data_processed_normalized/ndvi16/2020/ndvi16_2020_20200422.tif"
+    },
+    {
+      "kind": "data",
+      "var": "ndvi16",
+      "year": "2021",
+      "filename": "ndvi16_2021_20210423.tif",
+      "suspect_pct": 132.45378230522542,
+      "eq_minus9999_count": 280855,
+      "eq_nodata_count": 280855,
+      "nan_count": 0,
+      "inf_count": 0,
+      "path": "/Users/sammit/Desktop/Projects/Prometheus/data_processed_normalized/ndvi16/2021/ndvi16_2021_20210423.tif"
+    },
+    {
+      "kind": "data",
+      "var": "ndvi16",
+      "year": "2023",
+      "filename": "ndvi16_2023_20230423.tif",
+      "suspect_pct": 132.26655348047538,
+      "eq_minus9999_count": 280458,
+      "eq_nodata_count": 280458,
+      "nan_count": 0,
+      "inf_count": 0,
+      "path": "/Users/sammit/Desktop/Projects/Prometheus/data_processed_normalized/ndvi16/2023/ndvi16_2023_20230423.tif"
+    },
+    {
+      "kind": "data",
+      "var": "ndvi16",
+      "year": "2023",
+      "filename": "ndvi16_2023_20230322.tif",
+      "suspect_pct": 131.70958309752876,
+      "eq_minus9999_count": 279277,
+      "eq_nodata_count": 279277,
+      "nan_count": 0,
+      "inf_count": 0,
+      "path": "/Users/sammit/Desktop/Projects/Prometheus/data_processed_normalized/ndvi16/2023/ndvi16_2023_20230322.tif"
+    },
+    {
+      "kind": "data",
+      "var": "ndvi16",
+      "year": "2019",
+      "filename": "ndvi16_2019_20190117.tif",
+      "suspect_pct": 131.67374080362197,
+      "eq_minus9999_count": 279201,
+      "eq_nodata_count": 279201,
+      "nan_count": 0,
+      "inf_count": 0,
+      "path": "/Users/sammit/Desktop/Projects/Prometheus/data_processed_normalized/ndvi16/2019/ndvi16_2019_20190117.tif"
+    },
+    {
+      "kind": "data",
+      "var": "ndvi16",
+      "year": "2024",
+      "filename": "ndvi16_2024_20240305.tif",
+      "suspect_pct": 131.53367289190717,
+      "eq_minus9999_count": 278904,
+      "eq_nodata_count": 278904,
+      "nan_count": 0,
+      "inf_count": 0,
+      "path": "/Users/sammit/Desktop/Projects/Prometheus/data_processed_normalized/ndvi16/2024/ndvi16_2024_20240305.tif"
+    },
+    {
+      "kind": "data",
+      "var": "ndvi16",
+      "year": "2020",
+      "filename": "ndvi16_2020_20200508.tif",
+      "suspect_pct": 131.24221844934917,
+      "eq_minus9999_count": 278286,
+      "eq_nodata_count": 278286,
+      "nan_count": 0,
+      "inf_count": 0,
+      "path": "/Users/sammit/Desktop/Projects/Prometheus/data_processed_normalized/ndvi16/2020/ndvi16_2020_20200508.tif"
+    },
+    {
+      "kind": "data",
+      "var": "ndvi16",
+      "year": "2018",
+      "filename": "ndvi16_2018_20180306.tif",
+      "suspect_pct": 131.1370496132805,
+      "eq_minus9999_count": 278063,
+      "eq_nodata_count": 278063,
+      "nan_count": 0,
+      "inf_count": 0,
+      "path": "/Users/sammit/Desktop/Projects/Prometheus/data_processed_normalized/ndvi16/2018/ndvi16_2018_20180306.tif"
+    },
+    {
+      "kind": "data",
+      "var": "ndvi16",
+      "year": "2019",
+      "filename": "ndvi16_2019_20190423.tif",
+      "suspect_pct": 130.87907941897754,
+      "eq_minus9999_count": 277516,
+      "eq_nodata_count": 277516,
+      "nan_count": 0,
+      "inf_count": 0,
+      "path": "/Users/sammit/Desktop/Projects/Prometheus/data_processed_normalized/ndvi16/2019/ndvi16_2019_20190423.tif"
+    },
+    {
+      "kind": "data",
+      "var": "ndvi16",
+      "year": "2025",
+      "filename": "ndvi16_2025_20250306.tif",
+      "suspect_pct": 130.8036219581211,
+      "eq_minus9999_count": 277356,
+      "eq_nodata_count": 277356,
+      "nan_count": 0,
+      "inf_count": 0,
+      "path": "/Users/sammit/Desktop/Projects/Prometheus/data_processed_normalized/ndvi16/2025/ndvi16_2025_20250306.tif"
+    },
+    {
+      "kind": "data",
+      "var": "ndvi16",
+      "year": "2018",
+      "filename": "ndvi16_2018_20180218.tif",
+      "suspect_pct": 130.5140539520845,
+      "eq_minus9999_count": 276742,
+      "eq_nodata_count": 276742,
+      "nan_count": 0,
+      "inf_count": 0,
+      "path": "/Users/sammit/Desktop/Projects/Prometheus/data_processed_normalized/ndvi16/2018/ndvi16_2018_20180218.tif"
+    },
+    {
+      "kind": "data",
+      "var": "ndvi16",
+      "year": "2018",
+      "filename": "ndvi16_2018_20180322.tif",
+      "suspect_pct": 130.39473684210526,
+      "eq_minus9999_count": 276489,
+      "eq_nodata_count": 276489,
+      "nan_count": 0,
+      "inf_count": 0,
+      "path": "/Users/sammit/Desktop/Projects/Prometheus/data_processed_normalized/ndvi16/2018/ndvi16_2018_20180322.tif"
+    },
+    {
+      "kind": "data",
+      "var": "ndvi16",
+      "year": "2023",
+      "filename": "ndvi16_2023_20230407.tif",
+      "suspect_pct": 130.291454442558,
+      "eq_minus9999_count": 276270,
+      "eq_nodata_count": 276270,
+      "nan_count": 0,
+      "inf_count": 0,
+      "path": "/Users/sammit/Desktop/Projects/Prometheus/data_processed_normalized/ndvi16/2023/ndvi16_2023_20230407.tif"
+    }
+  ],
+  "top_30_by_minus9999_count": [
+    {
+      "kind": "data",
+      "var": "ndvi16",
+      "year": "2019",
+      "filename": "ndvi16_2019_20190218.tif",
+      "eq_minus9999_count": 290092,
+      "suspect_pct": 136.8100358422939,
+      "path": "/Users/sammit/Desktop/Projects/Prometheus/data_processed_normalized/ndvi16/2019/ndvi16_2019_20190218.tif"
+    },
+    {
+      "kind": "data",
+      "var": "ndvi16",
+      "year": "2019",
+      "filename": "ndvi16_2019_20190202.tif",
+      "eq_minus9999_count": 289513,
+      "suspect_pct": 136.53697415581965,
+      "path": "/Users/sammit/Desktop/Projects/Prometheus/data_processed_normalized/ndvi16/2019/ndvi16_2019_20190202.tif"
+    },
+    {
+      "kind": "data",
+      "var": "ndvi16",
+      "year": "2019",
+      "filename": "ndvi16_2019_20190306.tif",
+      "eq_minus9999_count": 288951,
+      "suspect_pct": 136.2719298245614,
+      "path": "/Users/sammit/Desktop/Projects/Prometheus/data_processed_normalized/ndvi16/2019/ndvi16_2019_20190306.tif"
+    },
+    {
+      "kind": "data",
+      "var": "ndvi16",
+      "year": "2020",
+      "filename": "ndvi16_2020_20200117.tif",
+      "eq_minus9999_count": 288246,
+      "suspect_pct": 135.93944538766272,
+      "path": "/Users/sammit/Desktop/Projects/Prometheus/data_processed_normalized/ndvi16/2020/ndvi16_2020_20200117.tif"
+    },
+    {
+      "kind": "data",
+      "var": "ndvi16",
+      "year": "2020",
+      "filename": "ndvi16_2020_20200305.tif",
+      "eq_minus9999_count": 287832,
+      "suspect_pct": 135.74419920769665,
+      "path": "/Users/sammit/Desktop/Projects/Prometheus/data_processed_normalized/ndvi16/2020/ndvi16_2020_20200305.tif"
+    },
+    {
+      "kind": "data",
+      "var": "ndvi16",
+      "year": "2022",
+      "filename": "ndvi16_2022_20220202.tif",
+      "eq_minus9999_count": 287637,
+      "suspect_pct": 135.65223542727787,
+      "path": "/Users/sammit/Desktop/Projects/Prometheus/data_processed_normalized/ndvi16/2022/ndvi16_2022_20220202.tif"
+    },
+    {
+      "kind": "data",
+      "var": "ndvi16",
+      "year": "2022",
+      "filename": "ndvi16_2022_20220101.tif",
+      "eq_minus9999_count": 287321,
+      "suspect_pct": 135.5032069420864,
+      "path": "/Users/sammit/Desktop/Projects/Prometheus/data_processed_normalized/ndvi16/2022/ndvi16_2022_20220101.tif"
+    },
+    {
+      "kind": "data",
+      "var": "ndvi16",
+      "year": "2019",
+      "filename": "ndvi16_2019_20190322.tif",
+      "eq_minus9999_count": 287195,
+      "suspect_pct": 135.44378419166196,
+      "path": "/Users/sammit/Desktop/Projects/Prometheus/data_processed_normalized/ndvi16/2019/ndvi16_2019_20190322.tif"
+    },
+    {
+      "kind": "data",
+      "var": "ndvi16",
+      "year": "2022",
+      "filename": "ndvi16_2022_20220117.tif",
+      "eq_minus9999_count": 285734,
+      "suspect_pct": 134.75476325221658,
+      "path": "/Users/sammit/Desktop/Projects/Prometheus/data_processed_normalized/ndvi16/2022/ndvi16_2022_20220117.tif"
+    },
+    {
+      "kind": "data",
+      "var": "ndvi16",
+      "year": "2020",
+      "filename": "ndvi16_2020_20200321.tif",
+      "eq_minus9999_count": 285367,
+      "suspect_pct": 134.5816827013771,
+      "path": "/Users/sammit/Desktop/Projects/Prometheus/data_processed_normalized/ndvi16/2020/ndvi16_2020_20200321.tif"
+    },
+    {
+      "kind": "data",
+      "var": "ndvi16",
+      "year": "2020",
+      "filename": "ndvi16_2020_20200218.tif",
+      "eq_minus9999_count": 285159,
+      "suspect_pct": 134.48358800226373,
+      "path": "/Users/sammit/Desktop/Projects/Prometheus/data_processed_normalized/ndvi16/2020/ndvi16_2020_20200218.tif"
+    },
+    {
+      "kind": "data",
+      "var": "ndvi16",
+      "year": "2022",
+      "filename": "ndvi16_2022_20220218.tif",
+      "eq_minus9999_count": 284679,
+      "suspect_pct": 134.2572156196944,
+      "path": "/Users/sammit/Desktop/Projects/Prometheus/data_processed_normalized/ndvi16/2022/ndvi16_2022_20220218.tif"
+    },
+    {
+      "kind": "data",
+      "var": "ndvi16",
+      "year": "2020",
+      "filename": "ndvi16_2020_20200101.tif",
+      "eq_minus9999_count": 284513,
+      "suspect_pct": 134.17892850405585,
+      "path": "/Users/sammit/Desktop/Projects/Prometheus/data_processed_normalized/ndvi16/2020/ndvi16_2020_20200101.tif"
+    },
+    {
+      "kind": "data",
+      "var": "ndvi16",
+      "year": "2020",
+      "filename": "ndvi16_2020_20200202.tif",
+      "eq_minus9999_count": 284473,
+      "suspect_pct": 134.16006413884173,
+      "path": "/Users/sammit/Desktop/Projects/Prometheus/data_processed_normalized/ndvi16/2020/ndvi16_2020_20200202.tif"
+    },
+    {
+      "kind": "data",
+      "var": "ndvi16",
+      "year": "2019",
+      "filename": "ndvi16_2019_20190407.tif",
+      "eq_minus9999_count": 284241,
+      "suspect_pct": 134.05065082059988,
+      "path": "/Users/sammit/Desktop/Projects/Prometheus/data_processed_normalized/ndvi16/2019/ndvi16_2019_20190407.tif"
+    },
+    {
+      "kind": "data",
+      "var": "ndvi16",
+      "year": "2020",
+      "filename": "ndvi16_2020_20200406.tif",
+      "eq_minus9999_count": 281958,
+      "suspect_pct": 132.97396717600452,
+      "path": "/Users/sammit/Desktop/Projects/Prometheus/data_processed_normalized/ndvi16/2020/ndvi16_2020_20200406.tif"
+    },
+    {
+      "kind": "data",
+      "var": "ndvi16",
+      "year": "2022",
+      "filename": "ndvi16_2022_20220306.tif",
+      "eq_minus9999_count": 281570,
+      "suspect_pct": 132.79098283342765,
+      "path": "/Users/sammit/Desktop/Projects/Prometheus/data_processed_normalized/ndvi16/2022/ndvi16_2022_20220306.tif"
+    },
+    {
+      "kind": "data",
+      "var": "ndvi16",
+      "year": "2020",
+      "filename": "ndvi16_2020_20200422.tif",
+      "eq_minus9999_count": 281281,
+      "suspect_pct": 132.65468779475572,
+      "path": "/Users/sammit/Desktop/Projects/Prometheus/data_processed_normalized/ndvi16/2020/ndvi16_2020_20200422.tif"
+    },
+    {
+      "kind": "data",
+      "var": "ndvi16",
+      "year": "2021",
+      "filename": "ndvi16_2021_20210423.tif",
+      "eq_minus9999_count": 280855,
+      "suspect_pct": 132.45378230522542,
+      "path": "/Users/sammit/Desktop/Projects/Prometheus/data_processed_normalized/ndvi16/2021/ndvi16_2021_20210423.tif"
+    },
+    {
+      "kind": "data",
+      "var": "ndvi16",
+      "year": "2023",
+      "filename": "ndvi16_2023_20230423.tif",
+      "eq_minus9999_count": 280458,
+      "suspect_pct": 132.26655348047538,
+      "path": "/Users/sammit/Desktop/Projects/Prometheus/data_processed_normalized/ndvi16/2023/ndvi16_2023_20230423.tif"
+    },
+    {
+      "kind": "data",
+      "var": "ndvi16",
+      "year": "2023",
+      "filename": "ndvi16_2023_20230322.tif",
+      "eq_minus9999_count": 279277,
+      "suspect_pct": 131.70958309752876,
+      "path": "/Users/sammit/Desktop/Projects/Prometheus/data_processed_normalized/ndvi16/2023/ndvi16_2023_20230322.tif"
+    },
+    {
+      "kind": "data",
+      "var": "ndvi16",
+      "year": "2019",
+      "filename": "ndvi16_2019_20190117.tif",
+      "eq_minus9999_count": 279201,
+      "suspect_pct": 131.67374080362197,
+      "path": "/Users/sammit/Desktop/Projects/Prometheus/data_processed_normalized/ndvi16/2019/ndvi16_2019_20190117.tif"
+    },
+    {
+      "kind": "data",
+      "var": "ndvi16",
+      "year": "2024",
+      "filename": "ndvi16_2024_20240305.tif",
+      "eq_minus9999_count": 278904,
+      "suspect_pct": 131.53367289190717,
+      "path": "/Users/sammit/Desktop/Projects/Prometheus/data_processed_normalized/ndvi16/2024/ndvi16_2024_20240305.tif"
+    },
+    {
+      "kind": "data",
+      "var": "ndvi16",
+      "year": "2020",
+      "filename": "ndvi16_2020_20200508.tif",
+      "eq_minus9999_count": 278286,
+      "suspect_pct": 131.24221844934917,
+      "path": "/Users/sammit/Desktop/Projects/Prometheus/data_processed_normalized/ndvi16/2020/ndvi16_2020_20200508.tif"
+    },
+    {
+      "kind": "data",
+      "var": "ndvi16",
+      "year": "2018",
+      "filename": "ndvi16_2018_20180306.tif",
+      "eq_minus9999_count": 278063,
+      "suspect_pct": 131.1370496132805,
+      "path": "/Users/sammit/Desktop/Projects/Prometheus/data_processed_normalized/ndvi16/2018/ndvi16_2018_20180306.tif"
+    },
+    {
+      "kind": "data",
+      "var": "ndvi16",
+      "year": "2019",
+      "filename": "ndvi16_2019_20190423.tif",
+      "eq_minus9999_count": 277516,
+      "suspect_pct": 130.87907941897754,
+      "path": "/Users/sammit/Desktop/Projects/Prometheus/data_processed_normalized/ndvi16/2019/ndvi16_2019_20190423.tif"
+    },
+    {
+      "kind": "data",
+      "var": "ndvi16",
+      "year": "2025",
+      "filename": "ndvi16_2025_20250306.tif",
+      "eq_minus9999_count": 277356,
+      "suspect_pct": 130.8036219581211,
+      "path": "/Users/sammit/Desktop/Projects/Prometheus/data_processed_normalized/ndvi16/2025/ndvi16_2025_20250306.tif"
+    },
+    {
+      "kind": "data",
+      "var": "ndvi16",
+      "year": "2018",
+      "filename": "ndvi16_2018_20180218.tif",
+      "eq_minus9999_count": 276742,
+      "suspect_pct": 130.5140539520845,
+      "path": "/Users/sammit/Desktop/Projects/Prometheus/data_processed_normalized/ndvi16/2018/ndvi16_2018_20180218.tif"
+    },
+    {
+      "kind": "data",
+      "var": "ndvi16",
+      "year": "2018",
+      "filename": "ndvi16_2018_20180322.tif",
+      "eq_minus9999_count": 276489,
+      "suspect_pct": 130.39473684210526,
+      "path": "/Users/sammit/Desktop/Projects/Prometheus/data_processed_normalized/ndvi16/2018/ndvi16_2018_20180322.tif"
+    },
+    {
+      "kind": "data",
+      "var": "ndvi16",
+      "year": "2023",
+      "filename": "ndvi16_2023_20230407.tif",
+      "eq_minus9999_count": 276270,
+      "suspect_pct": 130.291454442558,
+      "path": "/Users/sammit/Desktop/Projects/Prometheus/data_processed_normalized/ndvi16/2023/ndvi16_2023_20230407.tif"
+    }
+  ]
+}
