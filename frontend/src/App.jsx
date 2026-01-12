@@ -1,10 +1,9 @@
 import React from 'react'
+import WildfireRiskDashboard from './page'
 
 const App = () => {
   return (
-    <div className='text-4xl font-extrabold text-center'>
-      Hello
-    </div>
+    <WildfireRiskDashboard/>
   )
 }
 
