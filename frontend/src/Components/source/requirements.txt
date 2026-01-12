@@ -1,0 +1,8 @@
+numpy
+pandas
+rasterio
+python-dateutil
+pytz
+six
+tqdm
+tzdata
