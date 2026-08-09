@@ -32,7 +32,9 @@ def main(argv: list[str] | None = None) -> int:
     print("\n=== Day 2 report ===")
     print(f"raw rows:              {report['raw_rows']:,}")
     print(f"cleaned rows (all):    {report['cleaned_rows']:,}")
-    print(f"season 2016–2025:      {report['season_2016_2025_rows']:,}")
+    yr = report.get("train_years", "train")
+    n = report.get("season_train_rows", report.get("season_2016_2025_rows", 0))
+    print(f"season {yr}:           {n:,}")
     print(f"by collection:         {report.get('by_collection_season')}")
     print(f"cube shape (T,H,W):    {report['alignment']['shape']}")
     print(f"fire pixels in cube:   {report['alignment']['total_fire_pixels']:,}")
@@ -49,7 +51,6 @@ def main(argv: list[str] | None = None) -> int:
     print(table.to_string())
 
     ok = report["alignment"]["outside_mask_fire_pixels"] == 0
-    n = report["season_2016_2025_rows"]
     thr = "PASS" if n > 120_000 else "PENDING (need VIIRS download or more archives)"
     print(f"\n>120k season detections: {n:,} → {thr}")
     print(f"Outside-mask zero: {'PASS' if ok else 'FAIL'}")

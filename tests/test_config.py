@@ -5,7 +5,7 @@ from prometheus import grid
 
 
 def test_years_and_season():
-    assert cfg.years == list(range(2016, 2026))
+    assert cfg.years == list(range(2016, 2027))
     assert cfg.season_months == [1, 2, 3, 4, 5]
 
 
@@ -14,7 +14,9 @@ def test_settings_load():
     assert s.grid.height == 465
     assert s.grid.width == 912
     assert s.grid.crs == "EPSG:4326"
-    assert len(s.cv.years) == 10
+    assert s.years.train_end == 2026
+    assert len(s.cv.years) == 11
+    assert s.cv.years[-1] == 2026
 
 
 def test_grid_shape():

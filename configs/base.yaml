@@ -58,8 +58,10 @@ grid:
 # ---------------------------------------------------------------------------
 years:
   train_start: 2016
-  train_end: 2025
-  all: [2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025]
+  train_end: 2026
+  # Labels + predictors for LOYO training (pre-monsoon Jan–May each year)
+  all: [2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025, 2026]
+  # Prior MODIS only — doy fire climatology feature / baseline (no predictor rasters)
   climatology: [2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2012, 2013, 2014, 2015]
 
 season:
@@ -164,7 +166,7 @@ modeling:
 # ---------------------------------------------------------------------------
 cv:
   scheme: leave_one_year_out
-  years: [2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025]
+  years: [2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025, 2026]
   primary_metric: pr_auc
   top_k_fractions: [0.05, 0.10]
 

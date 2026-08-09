@@ -1,6 +1,6 @@
 # Prometheus — Progress Report
 
-Living log of what was built, cleaned, and verified. Keep this short and current.
+Living log of what was built, cleaned, and verified.
 
 | Field | Value |
 |---|---|
@@ -10,96 +10,108 @@ Living log of what was built, cleaned, and verified. Keep this short and current
 
 ---
 
-## Repository status (after cleanup)
-
-**Clean layout only** — all v1 bulk data, legacy code, old reports, and unused FIRMS exports deleted.
+## Repository layout
 
 ```
 configs/  src/  scripts/  tests/  frontend/  docs/
-data/          # gitignored runtime data
+data/          # gitignored (static, firms, cubes)
+runs/          # gitignored experiment outputs
 BUILD_PLAN.md  PROGRESS_REPORT.md  README.md  pyproject.toml
 ```
 
-### Removed (not needed for v2)
-- `legacy/` (old source, GEE scripts, notebooks, model checkpoints, nested venv)
-- `data_raw/`, `data_processed/`, `data_processed_normalized/` (16-day v1 rasters ~500 MB)
-- `reports/`, `results/`, unused docs (`AUDIT_AND_ROADMAP.md`, commit-message scratch file)
-- `frontend/node_modules/`
-- Redundant cleaned FIRMS CSV variants
+---
 
-### Kept on disk under `data/` (gitignored)
-| Path | Why |
-|---|---|
-| `data/static/nepal_mask_*.tif` | Canonical Nepal grid mask (168,064 valid 1 km cells) |
-| `data/static/elevation_*.tif`, `slope_*.tif` | Terrain static layers |
-| `data/raw/firms/archives/fire_archive_M-C61_*.csv` | MODIS seed for offline rebuilds |
-| `data/raw/firms/.map_key` | FIRMS MAP_KEY (secret) |
-| `data/cube/fire_daily.zarr` | Day-2 label cube |
-| `data/raw/firms/firms_clean_points.csv` | Cleaned detections |
+## Day 1 — Scaffold · Done
+
+Package + `configs/base.yaml` + 1 km Nepal grid/mask.
 
 ---
 
-## Day 1 — Scaffold
+## Day 2 — Fire labels · Done
 
-**Done.** Package loads config; tests pass.
+FIRMS Area API (day_range **1–5** only; date = window start).
 
-```text
-python -c "from prometheus.config import cfg; print(cfg.years, cfg.season_months)"
-→ [2016…2025] [1, 2, 3, 4, 5]
+| Metric | Result |
+|---|---|
+| Download | 1271 chunks in ~78 min |
+| Raw → cleaned | 967,983 → **803,025** |
+| Jan–May 2016–2025 | **760,696** (>120k **PASS**) |
+| Sensors | MODIS 47,920 · VIIRS SNPP 406,220 · VIIRS NOAA-20 306,556 |
+| Cube | `(1513, 465, 912)` · fire pixels 1,768,527 · **0 outside mask** |
+| April peak | Yes (e.g. 2024 Apr = 100,663 detections) |
+
+Command: `python scripts/build_fire_labels.py`
+
+---
+
+## Day 3 — Evaluation harness + baselines · Done
+
+### Implemented
+- `src/prometheus/eval/metrics.py` — PR-AUC, ROC-AUC, Brier, skill vs clim, top-k capture, reliability, ECE  
+- `src/prometheus/eval/baselines.py` — MODIS 2003–2015 doy climatology (±7 d temporal, σ=1 spatial); 7-day + 3×3 persistence  
+- `src/prometheus/eval/cv.py` — per-year metrics 2016–2025, mean ± std  
+- `scripts/run_baselines.py`
+
+### Results (mean over 10 years, Nepal-mask pixels)
+
+```
+model            PR-AUC  ROC-AUC    Brier top10%-capture
+climatology      0.0419   0.8091   0.0069         0.5553
+persistence      0.0503   0.7975   0.0585         0.6803
 ```
 
----
-
-## Day 2 — Fire labels
-
-**Pipeline done.** Uses FIRMS **Area API only**  
-(`/api/area/csv/{MAP_KEY}/{SOURCE}/{west,south,east,north}/{day_range}/{date}`).
-
-Per NASA status: **country / countries endpoints are not available**. We do not use them.
-
-| Check | Result |
+| Model | Notes |
 |---|---|
-| Cube shape | (1513, 465, 912) Jan–May daily |
-| Outside-mask fire pixels | **0** |
-| April spike in year×month table | **Yes** |
-| Season detections (MODIS seed only) | ~36.9k (VIIRS download still needed for >120k) |
-| Tests | **9 passed** |
+| **Climatology** | Soft maps from historical MODIS seasonality. Strong ROC (~0.81). Tops 10% risk areas catch **~56%** of fires. Lowest Brier (well-scaled probs). |
+| **Persistence** | Higher **PR-AUC** and **top-10% capture (~68%)** — recent fire + neighbours is a strong short-term signal. Worse Brier (hard 0/1 scores). |
 
-### Finish VIIRS download on your Mac (agent cannot reach NASA)
+**Shipping rule:** a new model must beat **climatology PR-AUC (0.0419)** on this LOYO protocol (and preferably top-10% capture). Report mean ± std from `metrics_per_year.csv`.
+
+### Outputs
+| Path | |
+|---|---|
+| `runs/baselines/metrics_table.txt` | Display table |
+| `runs/baselines/metrics_summary.csv` | Mean ± std |
+| `runs/baselines/metrics_per_year.csv` | Per year |
+| `data/cube/climatology_doy.npz` | Cached clim |
+
+### Command
 
 ```bash
 source .prometheus-venv/bin/activate
-python scripts/build_fire_labels.py
+python scripts/run_baselines.py
 ```
-
-Chunks cache under `data/raw/firms/chunks/`. Safe to re-run.
 
 ---
 
-## Alignment rule (every future download)
+## Alignment rule
 
-1. CRS = EPSG:4326  
-2. Shape = 465 × 912  
-3. Affine = values in `configs/base.yaml`  
-4. No positive labels outside Nepal mask  
-
-Helpers: `grid.assert_aligned(path)`, `firms.assert_cube_alignment(cube)`.
+Shape 465×912, EPSG:4326, zero positives outside Nepal mask.
 
 ---
 
-## Commit suggestion (Days 1–2 + cleanup)
+## Train window extended to 2026
 
+`configs/base.yaml` now covers **2016–2026** Jan–May (11 LOYO folds).  
+Revisit: rebuild fire labels with FIRMS for 2026, export GEE for **2026 only** if older years already done, re-run baselines.
+
+```bash
+python scripts/build_fire_labels.py          # caches old chunks; adds 2026
+python scripts/run_baselines.py              # after new fire_daily.zarr
 ```
-Scaffold clean v2 package and daily fire labels; remove v1 bulk.
-
-Single config/grid layout, FIRMS area-API pipeline to fire_daily.zarr,
-Nepal-mask alignment checks. Drop legacy code and unused 16-day rasters.
-```
-
-Stage code/docs only — **not** `data/` or `.map_key`.
 
 ---
 
-## Next: Day 3
+## Day 4–5 — GEE + local static · In progress (manual)
 
-Evaluation harness + climatology / persistence baselines (local only, no large downloads).
+Full step-by-step: **[docs/DAY4_5_MANUAL.md](docs/DAY4_5_MANUAL.md)**
+
+| Piece | Location |
+|---|---|
+| GEE scripts | `gee/era5_daily.js`, `lst_8day.js`, `ndvi_16day.js`, `static.js` |
+| Drive root | `Prometheus_GEE/{era5,lst,ndvi,static}` |
+| Local OSM distances + physio | `scripts/build_local_static.py` |
+| Alignment test | `tests/test_static_alignment.py` |
+| Land copies | `data/raw/gee/…` after Drive download |
+
+**You (manual):** start EE Tasks + Geofabrik download; agent cannot run EE or Drive for you.
