@@ -10,7 +10,7 @@ import xarray as xr
 from scipy import ndimage
 
 from prometheus import grid
-from prometheus.config import load_settings, project_root
+from prometheus.config import load_settings
 
 
 def fire_cube_path() -> Path:

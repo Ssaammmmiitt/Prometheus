@@ -2,13 +2,10 @@
 
 from __future__ import annotations
 
-from pathlib import Path
-
 import pytest
 
 from prometheus.config import load_settings
 from prometheus.grid import assert_aligned, shape
-
 
 REQUIRED_STATIC = [
     "dist_road.tif",

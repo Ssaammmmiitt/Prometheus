@@ -88,9 +88,7 @@ def _distance_km(presence: np.ndarray) -> np.ndarray:
     # distance_transform_edt on zeros: distance to nearest non-zero
     # so presence should be 1 where feature exists
     inv = presence == 0
-    px = float(abs(transform().a))  # degrees
-    # rough km/degree at Nepal mid-lat ~28°: 1° lat ≈ 111.32 km; lon × cos(lat)
-    # Using config pixel size in degrees and isotropic approx at lat 28.4
+    # Degrees → km at Nepal's mid-latitude; longitude shrinks by cos(lat).
     lat0 = 28.4
     km_per_deg_lat = 111.32
     km_per_deg_lon = 111.32 * np.cos(np.deg2rad(lat0))
@@ -228,7 +226,7 @@ def physio_from_elevation(mask: np.ndarray) -> np.ndarray:
         elev = src.read(1).astype(np.float32)
         if src.shape != shape():
             # warp to canonical grid
-            from rasterio.warp import reproject, Resampling
+            from rasterio.warp import Resampling, reproject
 
             dest = np.full(shape(), np.nan, dtype=np.float32)
             reproject(

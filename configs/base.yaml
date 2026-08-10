@@ -124,11 +124,13 @@ features:
     - tree_frac
     - shrub_frac
     - grass_frac
-    - cropland_frac
+    - crop_frac
   human_static:
     - dist_road
     - dist_settlement
-    - pop_density
+    # built_frac stands in for population density: WorldPop was not downloaded,
+    # and built-up fraction carries the same "people are here" signal.
+    - built_frac
   history:
     - fire_clim
     - days_since_fire

@@ -1,7 +1,7 @@
 """Day-1 scaffolding checks."""
 
-from prometheus.config import cfg, load_settings
 from prometheus import grid
+from prometheus.config import cfg, load_settings
 
 
 def test_years_and_season():

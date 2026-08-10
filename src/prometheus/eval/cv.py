@@ -18,7 +18,6 @@ from prometheus.eval.baselines import (
     year_indices,
 )
 
-
 PredictFn = Callable[[np.ndarray, pd.DatetimeIndex, int], np.ndarray]
 # signature: (fire, times, test_year) -> score array same shape as fire for all T
 # usually full-horizon scores precomputed; fold only slices year
