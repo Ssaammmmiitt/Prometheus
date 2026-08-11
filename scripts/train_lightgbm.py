@@ -11,6 +11,8 @@ import argparse
 import json
 from pathlib import Path
 
+import pandas as pd
+
 from prometheus.config import load_settings
 from prometheus.features.table import load_train_table, present_features, train_table_path
 from prometheus.models import lgbm
@@ -51,6 +53,17 @@ def main(argv: list[str] | None = None) -> int:
     print(f"  trained in {result.train_seconds:.1f}s · {result.best_iteration} trees")
     print(f"  inner-validation PR-AUC {result.valid_pr_auc:.4f}")
     print(f"  model → {model_path}")
+
+    importance = lgbm.feature_importance(booster)
+    importance.to_csv(out_dir / f"importance_holdout{args.year}.csv", index=False)
+    print("\ntop features by gain (share of total split gain):")
+    for _, r in importance.head(12).iterrows():
+        twin = (
+            f"  [r={r.pair_r:.2f} with {r.collinear_with} — pair holds {r.pair_gain_pct:.1f}%]"
+            if pd.notna(r.collinear_with)
+            else ""
+        )
+        print(f"  {r.feature:<22}{r.gain_pct:>6.1f}%{twin}")
 
     if args.no_grid_eval:
         return 0

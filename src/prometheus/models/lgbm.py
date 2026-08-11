@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
@@ -145,7 +146,7 @@ def train_fold(
     from prometheus.eval.metrics import pr_auc
 
     valid_scores = booster.predict(
-        valid[features].to_numpy(np.float32), num_iteration=booster.best_iteration
+        valid[features].to_numpy(np.float32), **_predict_kwargs(booster)
     )
     result = FoldResult(
         year=held_out_year,
@@ -160,6 +161,48 @@ def train_fold(
     return booster, result
 
 
+def _predict_kwargs(booster) -> dict[str, Any]:
+    """
+    Prediction arguments that keep a booster fast and correctly truncated.
+
+    LightGBM does not carry the training thread count into `predict`, and its
+    default leaves most cores idle — on this grid that is the difference between
+    80 seconds and six minutes per variant. `best_iteration` is -1 on a booster
+    reloaded from disk, which would silently mean "all trees", so only pass it
+    when it is real.
+    """
+    kwargs: dict[str, Any] = {"num_threads": os.cpu_count() or 4}
+    if getattr(booster, "best_iteration", -1) and booster.best_iteration > 0:
+        kwargs["num_iteration"] = booster.best_iteration
+    return kwargs
+
+
+def score_matrix(booster, bundle: dict, chunk_rows: int = 2_000_000) -> np.ndarray:
+    """
+    Score a prebuilt grid bundle, taking only the columns this booster wants.
+
+    Ablation variants are trained on subsets of the same feature set, so they can
+    all reuse one matrix — building it is far more expensive than predicting from
+    it. Columns are selected by name so a variant can never be fed the wrong ones.
+    """
+    matrix = bundle["matrix"]
+    index = {name: i for i, name in enumerate(bundle["features"])}
+    wanted = list(booster.feature_name())
+    missing = [f for f in wanted if f not in index]
+    if missing:
+        raise ValueError(f"grid bundle is missing model features: {missing}")
+    cols = np.array([index[f] for f in wanted], dtype=np.intp)
+
+    identity = cols.size == matrix.shape[1] and bool(np.all(cols == np.arange(cols.size)))
+    kwargs = _predict_kwargs(booster)
+    scores = np.empty(matrix.shape[0], dtype=np.float32)
+    for start in range(0, matrix.shape[0], chunk_rows):
+        stop = min(start + chunk_rows, matrix.shape[0])
+        block = matrix[start:stop] if identity else matrix[start:stop, cols]
+        scores[start:stop] = booster.predict(block, **kwargs)
+    return scores.reshape(bundle["n_days"], bundle["n_cells"])
+
+
 def predict_grid(
     booster,
     year: int,
@@ -169,27 +212,22 @@ def predict_grid(
     anomaly=None,
     all_years: list[int] | None = None,
     features: list[str] | None = None,
+    bundle: dict | None = None,
     chunk_rows: int = 2_000_000,
 ) -> dict:
     """Score every forest cell for every day of a season."""
-    bundle = ftable.year_grid_features(
-        year,
-        cube=cube,
-        fire_ds=fire_ds,
-        anomaly=anomaly,
-        all_years=all_years,
-        features=features or list(booster.feature_name()),
-    )
-    matrix = bundle["matrix"]
-    scores = np.empty(matrix.shape[0], dtype=np.float32)
-    for start in range(0, matrix.shape[0], chunk_rows):
-        stop = min(start + chunk_rows, matrix.shape[0])
-        scores[start:stop] = booster.predict(
-            matrix[start:stop], num_iteration=booster.best_iteration
+    if bundle is None:
+        bundle = ftable.year_grid_features(
+            year,
+            cube=cube,
+            fire_ds=fire_ds,
+            anomaly=anomaly,
+            all_years=all_years,
+            features=features or list(booster.feature_name()),
         )
-    bundle["scores"] = scores.reshape(bundle["n_days"], bundle["n_cells"])
-    del bundle["matrix"]
-    return bundle
+    out = {k: v for k, v in bundle.items() if k != "matrix"}
+    out["scores"] = score_matrix(booster, bundle, chunk_rows)
+    return out
 
 
 def evaluate_grid(
@@ -201,6 +239,7 @@ def evaluate_grid(
     fire_ds=None,
     anomaly=None,
     all_years: list[int] | None = None,
+    bundle: dict | None = None,
 ) -> dict:
     """
     Score the model and both baselines on one identical pixel population.
@@ -212,9 +251,16 @@ def evaluate_grid(
     from prometheus.eval import baselines, metrics
     from prometheus.features import derived
 
-    bundle = predict_grid(
-        booster, year, cube=cube, fire_ds=fire_ds, anomaly=anomaly, all_years=all_years
+    scored = predict_grid(
+        booster,
+        year,
+        cube=cube,
+        fire_ds=fire_ds,
+        anomaly=anomaly,
+        all_years=all_years,
+        bundle=bundle,
     )
+    bundle = scored
     rows, cols = bundle["rows"], bundle["cols"]
     labels_all = derived.horizon_labels(bundle["fire"], [horizon])
     y = labels_all[f"label_h{horizon}"][:, rows, cols]
@@ -301,6 +347,37 @@ def search(
             )
     frame = pd.DataFrame(rows).sort_values("valid_pr_auc", ascending=False)
     return (best[1] if best else {}), frame
+
+
+#: Feature pairs whose correlation exceeds ~0.95 in the training table. LightGBM
+#: is indifferent to them for accuracy, but gain and SHAP get split arbitrarily
+#: between each pair, so importance must be read at the group level, not per row.
+COLLINEAR_TWINS = [
+    ("t2m_max", "t2m", 0.99),
+    ("surface_pressure", "elevation", 0.98),
+    ("fires_3yr", "fires_5yr", 0.96),
+]
+
+
+def feature_importance(booster) -> pd.DataFrame:
+    """Gain importance, with collinear twins flagged and their gain pooled."""
+    names = list(booster.feature_name())
+    gain = booster.feature_importance("gain")
+    frame = pd.DataFrame({"feature": names, "gain": gain})
+    frame["gain_pct"] = 100 * frame["gain"] / max(frame["gain"].sum(), 1e-9)
+
+    partner = {}
+    for a, b, r in COLLINEAR_TWINS:
+        partner[a], partner[b] = (b, r), (a, r)
+    frame["collinear_with"] = frame["feature"].map(lambda f: partner.get(f, (None,))[0])
+    frame["pair_r"] = frame["feature"].map(lambda f: partner.get(f, (None, None))[-1])
+
+    lookup = dict(zip(frame["feature"], frame["gain_pct"]))
+    frame["pair_gain_pct"] = [
+        gp + lookup.get(tw, 0.0) if tw else gp
+        for gp, tw in zip(frame["gain_pct"], frame["collinear_with"])
+    ]
+    return frame.sort_values("gain", ascending=False).reset_index(drop=True)
 
 
 def save_model(booster, result: FoldResult, tag: str = "lgbm") -> Path:

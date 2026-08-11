@@ -154,11 +154,13 @@ features:
 # ---------------------------------------------------------------------------
 modeling:
   positive_negative_ratio: 20
-  n_estimators: 500
-  learning_rate: 0.05
-  num_leaves: 63
-  min_data_in_leaf: 50
-  feature_fraction: 0.8
+  # Day 9 random search over 24 configs (holdout 2021). The whole search spanned
+  # only 0.3695-0.3840 inner PR-AUC, so these are a mild preference, not a tuning win.
+  n_estimators: 800
+  learning_rate: 0.02
+  num_leaves: 127
+  min_data_in_leaf: 200
+  feature_fraction: 0.65
   early_stopping_rounds: 50
   random_seed: 42
   horizons: [1, 7]

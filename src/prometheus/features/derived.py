@@ -124,7 +124,10 @@ class SeasonAnomaly:
     def anomaly(self, year: int, dates: list[date], values: np.ndarray) -> np.ndarray:
         if self.total is None or self.count is None:
             raise RuntimeError("SeasonAnomaly has no years accumulated")
-        acc, cnt = self.per_year[year]
+        # A year the climatology never accumulated — an unseen season at
+        # inference time — contributes nothing to subtract out, so it is scored
+        # against the full mean. Leaving one out only matters for years inside it.
+        acc, cnt = self.per_year.get(year, (0.0, 0.0))
         others = self.total - acc
         n_others = np.maximum(self.count - cnt, 1.0)
         climatology = others / n_others

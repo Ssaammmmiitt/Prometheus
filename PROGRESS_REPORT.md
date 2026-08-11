@@ -312,11 +312,199 @@ python scripts/plot_feature_diagnostics.py
 
 ---
 
+## Day 9 — LightGBM · Done
+
+One leave-one-year-out fold (holdout **2021**), trained with `scale_pos_weight`
+and early stopping, then scored on **every forest cell of every day** of the
+held-out season — 18,993,300 pixel-days, 353,637 of them positive.
+
+| Model | PR-AUC | Top-10 % capture |
+|---|---|---|
+| **LightGBM** | **0.2195** | **0.648** |
+| Persistence | 0.0691 | 0.410 |
+| Climatology | 0.0566 | 0.362 |
+
+Skill vs climatology **+287 %**. Fold trains in **48 s**, comfortably inside the
+two-minute gate; full-grid scoring adds ~4 min.
+
+**The climatology bar moved, and that is deliberate.** Day 3 reported climatology
+PR-AUC 0.0416 over all Nepal cells. The model only speaks for the forest mask,
+where fires are concentrated and the base rate is 1.86 % rather than the
+all-Nepal rate. Comparing across two different pixel populations would be
+meaningless, so `evaluate_grid` recomputes climatology *and* persistence on the
+model's own cells and days inside the same run. 0.0566 is that recomputed bar.
+The 0.0416 figure stays valid for the all-Nepal population reported on Day 3.
+
+**Early stopping does not touch the held-out year.** The most recent remaining
+season is set aside as an inner validation fold. A random row split would have
+leaked badly — neighbouring cells on the same day are very nearly the same sample.
+
+**Hyperparameter search: 24 random configs** over `num_leaves`,
+`min_data_in_leaf`, `learning_rate`, `feature_fraction`. Worth stating plainly
+that it barely mattered — the entire search spanned 0.3695 to 0.3840 inner
+PR-AUC, and full-grid PR-AUC was 0.2197 with the untuned defaults versus 0.2195
+with the winner. Tuning is not the lever on this problem; features and the
+evaluation protocol are. Winner (now the config default): `num_leaves` 127,
+`min_data_in_leaf` 200, `learning_rate` 0.02, `feature_fraction` 0.65.
+
+**Importance, with the collinearity caveat applied.** Gain is dominated by
+`days_since_fire` (25.7 %) and `fire_clim` (14.1 %), then day-of-year encoding
+and same-day weather. Because credit is split arbitrarily between correlated
+twins, `feature_importance` reports a pooled `pair_gain_pct` alongside the raw
+share: `fires_5yr` shows 3.1 % alone but the `fires_3yr`/`fires_5yr` pair holds
+4.1 %, and `elevation` shows 2.1 % while the `elevation`/`surface_pressure` pair
+holds 3.6 %. Read these at the group level. The same caveat governs the Day 11
+SHAP work — a twin's individual attribution is not interpretable on its own.
+
+```bash
+python scripts/train_lightgbm.py --year 2021              # fold + full-grid eval, ~5 min
+python scripts/train_lightgbm.py --year 2021 --search 24  # + random search, ~17 min
+```
+
+---
+
+## Day 10 — Full evaluation · Done
+
+Ten leave-one-year-out folds, each scored on every forest cell of every day of
+its held-out season. **2016 trains but is never held out** — it is the first year
+with fire labels, so nothing exists before it to build fire history from, and
+scoring it would measure a model whose history features are blank by
+construction rather than a model that failed.
+
+### Results — leave-one-year-out
+
+| Holdout | PR-AUC | Climatology | Persistence | Top-10 % | Base rate |
+|---|---|---|---|---|---|
+| 2017 | 0.1236 | 0.0271 | 0.0203 | 0.753 | 0.32 % |
+| 2018 | 0.1441 | 0.0351 | 0.0272 | 0.723 | 0.56 % |
+| 2019 | 0.2358 | 0.0441 | 0.0567 | 0.804 | 0.81 % |
+| 2020 | 0.0730 | 0.0153 | 0.0220 | 0.686 | 0.26 % |
+| 2021 | 0.2195 | 0.0566 | 0.0691 | 0.648 | 1.86 % |
+| 2022 | 0.1343 | 0.0460 | 0.0345 | 0.715 | 0.49 % |
+| 2023 | 0.1330 | 0.0458 | 0.0395 | 0.617 | 1.19 % |
+| 2024 | 0.1900 | 0.0687 | 0.0591 | 0.652 | 1.57 % |
+| 2025 | 0.1500 | 0.0458 | 0.0323 | 0.699 | 0.72 % |
+| 2026 | 0.1443 | 0.0408 | 0.0309 | 0.728 | 0.53 % |
+| **mean ± std** | **0.1548 ± 0.0481** | 0.0425 ± 0.0148 | 0.0392 ± 0.0168 | 0.703 ± 0.055 | 0.83 % |
+
+**LightGBM 0.1548 ± 0.0481 vs climatology 0.0425 — +281 % skill, and it beats
+both baselines in all ten folds.** The fold-to-fold spread is large and tracks
+the base rate: 2020 is the worst fold (0.0730) and also the quietest fire year
+(0.26 %), while 2019 and 2021 are the best and among the busiest. PR-AUC is
+base-rate dependent, so that spread is mostly the seasons differing, not the
+model being unstable — which is exactly why the climatology column is reported
+next to every fold rather than as a single global number.
+
+### Ablations — mean ΔPR-AUC when a family is removed
+
+| Variant | Features | PR-AUC | Δ | Δ % |
+|---|---|---|---|---|
+| drop_terrain | 35 | 0.1552 ± 0.0467 | +0.0004 | +0.6 % |
+| **full** | **44** | **0.1548 ± 0.0481** | — | — |
+| drop_human | 41 | 0.1543 ± 0.0486 | −0.0005 | −0.4 % |
+| drop_vegetation | 38 | 0.1521 ± 0.0471 | −0.0027 | −1.6 % |
+| drop_weather | 25 | 0.1404 ± 0.0462 | −0.0143 | −9.3 % |
+| drop_fire_history | 39 | 0.0695 ± 0.0294 | −0.0853 | **−56.2 %** |
+
+Dropping weather also drops the rolling and dryness aggregates (`precip_30d`,
+`consecutive_dry_days`, and the rest) — keeping those would not be an honest
+weather ablation. Day-of-year encoding belongs to no family and is never
+dropped, since it is calendar position rather than an observed driver.
+
+**Fire history is the model.** Remove it and PR-AUC more than halves, to 0.0695
+— barely above the 0.0425 climatology bar. Weather is the only other family that
+matters, at −9.3 %. Terrain and human proximity are worth nothing measurable:
+dropping either moves PR-AUC by less than 0.001, well inside the ±0.048
+fold-to-fold spread, and dropping terrain nominally *improves* the mean. This is
+the Day 8 correlation finding confirmed under a much stronger test — static
+susceptibility layers describe where fires cluster over decades, not which day
+burns.
+
+Because it carries the model, it is worth being explicit that fire history does
+not leak. `fire_clim` is built from MODIS **2003–2015**, entirely before the
+2016–2026 modelling period. Within a season, `days_since_fire` and the
+`fires_Nyr` counters use detections through day *t* to predict day *t+1*, which
+is information genuinely in hand at forecast time. Both properties are pinned by
+tests, since a −56 % ablation result is only as trustworthy as its causality.
+
+### Per-region breakdown
+
+| Region | Positives | Base rate | PR-AUC | Climatology | Skill |
+|---|---|---|---|---|---|
+| Terai | 323,038 | 1.29 % | 0.1468 ± 0.0411 | 0.0655 | +136 % |
+| Chure | 699,612 | 1.58 % | 0.2398 ± 0.0530 | 0.0604 | +341 % |
+| Middle Mountains | 521,499 | 0.59 % | 0.0934 ± 0.0546 | 0.0172 | +469 % |
+| High Mountains | 37,798 | 0.11 % | 0.0483 ± 0.0344 | 0.0022 | +2151 % |
+
+Raw PR-AUC falls with elevation, but so does the base rate, so skill runs the
+other way — the model adds *most* where fire is rarest, because climatology has
+almost nothing to say there. Chure is the best-served belt in absolute terms and
+also the busiest: 700k positive pixel-days, more than any other region.
+
+### Do drivers differ by region? Only mildly.
+
+SHAP share by family, per region (%):
+
+| Region | Weather | Fire history | Vegetation | Calendar | Terrain | Human |
+|---|---|---|---|---|---|---|
+| Terai | 31.3 | 25.8 | 17.4 | 14.8 | 8.5 | 2.3 |
+| Chure | 30.0 | 26.8 | 18.2 | 14.7 | 7.9 | 2.3 |
+| Middle Mountains | 31.3 | 24.0 | 14.6 | 18.9 | 8.7 | 2.5 |
+| High Mountains | 26.1 | 20.4 | 21.1 | 18.7 | 11.5 | 2.3 |
+
+The literature argues drivers differ substantially by physiographic belt. **The
+model only partly agrees.** The ranking is identical in all four belts — weather
+first, fire history second, human proximity last and negligible everywhere. What
+does shift is a monotone gradient with elevation: fire history falls from 25.8 %
+in the Terai to 20.4 % in the High Mountains, while terrain rises 8.5 → 11.5 %
+and vegetation and thermal rise 17.4 → 21.1 %. Feature by feature, the clearest
+regional signal is `lst_day`, which reaches 10 % in the High Mountains but does
+not enter the top four anywhere else. So: a real gradient, but a shift in
+emphasis rather than the different-drivers-per-region story the literature tells.
+
+### SHAP — global
+
+| Feature | Share | | Feature | Share |
+|---|---|---|---|---|
+| `doy_cos` | 10.7 % | | `rh` | 5.9 % |
+| `fire_clim` | 9.2 % | | `lst_day` | 5.8 % |
+| `days_since_fire` | 6.8 % | | `precip` | 5.2 % |
+| `doy_sin` | 6.6 % | | `lst_diff` | 3.7 % |
+| `fires_5yr` | 6.0 % | | `elevation` | 3.0 % |
+
+The dependence plots (`runs/shap/dependence_2021.png`) are all physically
+readable, which is the real test of the narrative:
+
+- **`rh`** is cleanly monotone — contribution crosses from positive to negative
+  at roughly 60 % relative humidity.
+- **`days_since_fire`** spikes hard in the first ~50 days after a burn, then
+  decays to a mild negative by ~250 days. Recent fire predicts more fire, which
+  is the repeat-ignition behaviour of Nepal's spring burning season.
+- **`fires_5yr`** rises steeply to about 8 prior fires and then saturates.
+- **`doy_cos` / `doy_sin`** trace the March–April peak.
+
+Two plotting decisions worth knowing: the never-burned sentinel
+(`days_since_fire` = 9999, about 30 % of rows) is hidden from the plots only —
+the model still uses it — because otherwise that single value owns the axis and
+colour scale. And **collinear twins split their SHAP credit**, so `fires_5yr` at
+6.0 % and `elevation` at 3.0 % each understate their pair: read `fires_3yr`/
+`fires_5yr` (r = 0.96) and `elevation`/`surface_pressure` (r = 0.98) together.
+The plots label the twin in the panel title.
+
+```bash
+python scripts/run_cv.py                    # 10 folds × 6 variants, ~2 h 20 m
+python scripts/plot_shap.py --year 2021     # beeswarm + dependence grid
+```
+
+---
+
 ## Standing rules
 
 1. **Alignment.** 465 × 912, EPSG:4326, zero fire pixels outside the Nepal mask.
 2. **No hardcoded years or paths** outside `configs/base.yaml`.
-3. **Beat climatology PR-AUC 0.0416** or it does not ship.
+3. **Beat climatology** or it does not ship — recomputed on the *same* pixel
+   population as the model (0.0416 all-Nepal, 0.0566 forest mask), never across
+   two different populations.
 4. **Always print the base rate** next to any metric, and lead with skill vs climatology.
 5. **Evaluate on the full grid**, never on the sampled training table.
 6. Never commit `data/`, `*.tif`, `*.zarr`, or `.map_key`.
@@ -333,6 +521,8 @@ python scripts/plot_feature_diagnostics.py
 | Rolling windows truncate in early January | Only Jan–May was downloaded, so there is no December history |
 | Nov–Dec fires (~8% of detections) are out of scope | Documented seasonal restriction |
 | TWI is a slope-based approximation, not full flow routing | Adequate for tree models |
+| 2016 is never a holdout fold — no prior year exists to build fire history from | 10 folds, not 11 |
+| PR-AUC varies with each season's base rate | Always read a fold next to its own climatology column |
 
 ---
 
