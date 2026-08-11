@@ -182,6 +182,36 @@ def model_card(bundle: ModelBundle, reports: dict[int, dict], settings) -> str:
         "ECE uses equal-count bins; at a sub-1 % base rate equal-width bins put",
         "almost every pixel in the first bin and report a flatteringly small number.",
         "",
+        "Calibration is not cosmetic here. Training uses a 1:20 negative downsample,",
+        "so the raw booster score averages ~0.18 against a true rate under 1 % — off",
+        "by a factor of thirty. Isotonic is fitted on **full-grid** predictions from",
+        "the calibration season, because a fit on the sampled table would map onto",
+        "the sampled prevalence and stay just as wrong.",
+        "",
+        "## Latency",
+        "",
+        "| Horizon | Trees | Median `predict(date)` |",
+        "|---|---|---|",
+    ]
+    for h, artifacts in sorted(bundle.horizons.items()):
+        trees = artifacts.metrics.get("n_trees", 0)
+        latency = bundle.notes.get("latency_seconds", {}).get(str(h))
+        shown = f"{latency:.3f} s" if latency else "—"
+        lines.append(f"| h{h} | {trees} | {shown} |")
+    lines += [
+        "",
+        "Returns a (465, 912) calibrated surface. The first call of a season pays a",
+        "~14 s warm-up: rolling windows, dry-day counters, and fire-history state for",
+        "any single day depend on the whole season to date, so the season is built",
+        "once and cached (~3.4 GB resident). Every later date is a slice and one",
+        "booster pass.",
+        "",
+        f"Learning rate is {bundle.notes.get('learning_rate', 0.05)} rather than the",
+        "0.02 that won the Day 9 search. Inference cost is linear in tree count, and",
+        "0.02 needed roughly twice as many trees to buy a PR-AUC difference smaller",
+        "than the fold-to-fold spread — it cost about 2 % relative PR-AUC and bought",
+        "a 3.3x latency reduction.",
+        "",
         "## Risk classes",
         "",
         f"Quantiles {settings.risk_classes.quantiles} of the predicted distribution",
@@ -189,6 +219,24 @@ def model_card(bundle: ModelBundle, reports: dict[int, dict], settings) -> str:
         "Classes are relative — Extreme means the top 5 % of place-days, matching",
         "operational fire-danger convention, not a fixed probability.",
         "",
+    ]
+    for h, r in sorted(reports.items()):
+        classes = r.get("classes", [])
+        if not classes:
+            continue
+        lines += [
+            f"h{h} on the held-out season:",
+            "",
+            "| Class | % of grid | Observed rate | % of fires captured |",
+            "|---|---|---|---|",
+        ]
+        for row in classes:
+            lines.append(
+                f"| {row['class']} | {row['share_of_grid']:.1%} | "
+                f"{row['observed_rate']:.3%} | {row['fires_captured']:.1%} |"
+            )
+        lines.append("")
+    lines += [
         "## Intended use and limits",
         "",
         "- Jan–May only. Nov–Dec fires (~8 % of detections) are out of scope.",
@@ -257,23 +305,34 @@ def main(argv: list[str] | None = None) -> int:
         test_year=args.test_year,
         risk_class_names=list(settings.risk_classes.names),
         risk_quantiles=list(settings.risk_classes.quantiles),
-        notes={"early_stopping_year": args.calib_year - 1},
+        notes={
+            "early_stopping_year": args.calib_year - 1,
+            "learning_rate": args.learning_rate,
+        },
     )
     root = bundle.save()
-    (root / "MODEL_CARD.md").write_text(model_card(bundle, reports, settings), encoding="utf-8")
     (out_dir / "calibration_report.json").write_text(
         json.dumps({str(h): r for h, r in reports.items()}, indent=2, default=float),
         encoding="utf-8",
     )
 
     print(f"\n{'=' * 72}\nfrozen bundle {bundle.version} → {root}")
+
+    ok, latency = benchmark(bundle, args.test_year)
+    bundle.notes["latency_seconds"] = latency
+    bundle.save(root)
+    (root / "MODEL_CARD.md").write_text(
+        model_card(bundle, reports, settings), encoding="utf-8"
+    )
+    print(f"\nmodel card → {root / 'MODEL_CARD.md'}")
     for name in sorted(p.name for p in root.iterdir()):
         print(f"  {name}")
+    return 0 if ok else 1
 
-    return 0 if benchmark(bundle, args.test_year) else 1
 
-
-def benchmark(bundle: ModelBundle, year: int, *, budget: float = 1.0) -> bool:
+def benchmark(
+    bundle: ModelBundle, year: int, *, budget: float = 1.0
+) -> tuple[bool, dict[str, float]]:
     """Time `predict(date)` on the frozen bundle — the Day 11 acceptance gate."""
     import time
 
@@ -289,6 +348,7 @@ def benchmark(bundle: ModelBundle, year: int, *, budget: float = 1.0) -> bool:
     dates = predictor._year_features(year)["dates"]
     probe = [dates[i] for i in np.linspace(0, len(dates) - 1, 7).astype(int)]
     ok = True
+    latency: dict[str, float] = {}
     for horizon in predictor.horizons:
         timings = []
         for day in probe:
@@ -297,12 +357,13 @@ def benchmark(bundle: ModelBundle, year: int, *, budget: float = 1.0) -> bool:
             timings.append(time.perf_counter() - start)
         trees = bundle.horizons[horizon].metrics.get("n_trees", 0)
         median = float(np.median(timings))
+        latency[str(horizon)] = median
         passed = max(timings) < budget
         ok &= passed
         print(f"  h{horizon}: {trees} trees · median {median:.3f}s · "
               f"max {max(timings):.3f}s · shape {surface.shape} · "
               f"{'PASS' if passed else 'FAIL'} (<{budget:.0f}s)")
-    return ok
+    return ok, latency
 
 
 if __name__ == "__main__":

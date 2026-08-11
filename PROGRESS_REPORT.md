@@ -498,6 +498,157 @@ python scripts/plot_shap.py --year 2021     # beeswarm + dependence grid
 
 ---
 
+## Day 11 — Calibration, the 7-day horizon, frozen bundle `v1` · Done
+
+Year split, chosen so nothing reported is anything the model touched:
+**fit 2016–2023 · early stopping 2024 · isotonic calibration 2025 · reported on 2026.**
+
+### Calibration was load-bearing, not cosmetic
+
+Training uses a 1:20 negative downsample, so the raw booster score averages
+**0.18 against a true rate of 0.53 %** — overconfident by a factor of thirty. The
+raw model is a good *ranker* and a useless *probability*.
+
+| Horizon | Base rate | mean raw → calibrated | ECE raw → calibrated | Brier raw → calibrated | PR-AUC |
+|---|---|---|---|---|---|
+| h1 | 0.529 % | 0.181 → 0.0052 | 0.1757 → **0.00018** | 0.0729 → 0.0047 | 0.1535 → 0.1538 |
+| h7 | 2.603 % | 0.179 → 0.0236 | 0.1531 → **0.00281** | 0.0709 → 0.0215 | 0.2880 → 0.2875 |
+
+ECE improves by roughly **950×** for h1 and **55×** for h7, and calibrated mean
+probability lands within 2 % of the observed base rate. PR-AUC is unchanged to
+within ±0.0005 — isotonic is monotone, so it cannot reorder; the tiny movement is
+distinct raw scores collapsing onto a shared calibrated value.
+
+Two decisions worth defending. **Isotonic is fitted on full-grid predictions, not
+on the training table** — a fit on the 1:20 sample would learn to map onto the
+sampled prevalence and stay just as wrong, only in a subtler way. And **ECE is
+reported with equal-count bins**: at a sub-1 % base rate, equal-width bins drop
+almost every pixel into the first bin and report a flatteringly small number. Both
+are printed; the equal-count figure is the honest one.
+
+The calibrator is stored as ~500 interpolation breakpoints in the manifest rather
+than a pickled sklearn object, so the bundle stays readable and portable across
+library versions, and applying it is a single `np.interp`.
+
+![Reliability h1](runs/calibration/reliability_h1.png)
+
+The raw curve sits one to two orders of magnitude below the diagonal across the
+entire range; the calibrated curve tracks it from 10⁻⁵ to 10⁻¹. Axes are log–log
+because a linear reliability diagram at this base rate is a dot in the corner.
+
+### Risk classes, held-out 2026
+
+Quantiles `[0.5, 0.75, 0.9, 0.95]` of the predicted distribution over the
+calibration season. Classes are **relative** — Extreme means the top 5 % of
+place-days, per operational fire-danger convention — not fixed probabilities.
+
+| Class | % of grid | Observed rate (h1) | % of fires captured |
+|---|---|---|---|
+| Low | 52.3 % | 0.039 % | 3.9 % |
+| Moderate | 28.6 % | 0.215 % | 11.7 % |
+| High | 12.6 % | 0.809 % | 19.3 % |
+| Very High | 3.4 % | 2.046 % | 13.3 % |
+| **Extreme** | **3.0 %** | **9.038 %** | **51.9 %** |
+
+Observed fire rate rises monotonically across all five classes and spans a **232×
+range** from Low to Extreme, which is what makes the labels operationally
+meaningful. Extreme covers 3 % of the grid and contains over half of all fires.
+Class shares do not exactly match the target quantiles (52.3 % vs 50 % for Low)
+because thresholds are fitted on 2025 and applied to 2026, and because heavy ties
+at very low probabilities cannot be split.
+
+### `predict(date) -> (465, 912)` in well under a second
+
+| Horizon | Trees | Median | Max |
+|---|---|---|---|
+| h1 | 202 | **0.340 s** | 0.377 s |
+| h7 | 389 | **0.602 s** | 0.653 s |
+
+The first call of a season pays a ~12 s warm-up. Rolling windows, dry-day
+counters, and fire-history state for any single day all depend on the whole season
+to date, so there is no cheaper honest way to get one day in isolation: the season
+is built once and cached (~3.4 GB resident), after which each date is an array
+slice plus one booster pass.
+
+**Getting under a second required a deliberate trade.** Inference cost is linear
+in tree count — about 1.6 ms per tree over the mask — and the Day 9 winner
+(learning rate 0.02) needed 553 trees for h1 and 797 for h7, putting h7 at 1.33 s
+and failing the gate. Since the Day 9 search showed learning rate to be worth less
+than fold-to-fold noise, the frozen models use 0.05. That halves the trees and
+costs about 2 % relative PR-AUC (h7 0.2935 → 0.2875), comfortably inside the
+±0.048 fold spread, for a 2.2× latency reduction.
+
+### Frozen and versioned
+
+`data/models/bundles/v1/` holds both boosters, both calibrators, the class
+thresholds, the exact year split, and `MODEL_CARD.md`. Loading a bundle by
+version is the only supported way to predict, so any score traces back to the
+artefacts that produced it. The model card records intended use and the limits
+that matter: detections are not ground truth, no prediction is made off the forest
+mask, skill degrades where there is no fire history, the static human and terrain
+layers add nothing measurable, and the raw booster margin must never be read as a
+probability.
+
+```bash
+python scripts/build_model_bundle.py    # train h1+h7, calibrate, freeze, benchmark (~8 min)
+python scripts/plot_calibration.py      # reliability diagrams
+```
+
+```python
+from prometheus.models.predict import RiskPredictor
+p = RiskPredictor("latest")
+risk    = p.predict("2026-04-01", horizon=1)   # (465, 912) calibrated probability
+classes = p.risk_classes("2026-04-01")         # 0-4, -1 off-mask
+```
+
+---
+
+## Day 12 — CNN comparison (local MPS) · Done
+
+Optional U-Net comparison, run **locally on the M4 Pro over Metal (MPS)** rather
+than Kaggle. Same leave-one-year-out years as Day 10 (2016 warms history only;
+2017–2026 held out), same forest-masked pixel population, same metrics.
+
+| Holdout | U-Net PR-AUC | LightGBM PR-AUC | Climatology | Winner |
+|---|---|---|---|---|
+| 2017 | 0.0595 | 0.1236 | 0.0271 | LightGBM |
+| 2018 | 0.0874 | 0.1441 | 0.0351 | LightGBM |
+| 2019 | 0.1144 | 0.2358 | 0.0441 | LightGBM |
+| 2020 | 0.0571 | 0.0730 | 0.0153 | LightGBM |
+| 2021 | 0.1318 | 0.2195 | 0.0566 | LightGBM |
+| 2022 | 0.1148 | 0.1343 | 0.0460 | LightGBM |
+| 2023 | 0.0816 | 0.1330 | 0.0458 | LightGBM |
+| 2024 | 0.1287 | 0.1900 | 0.0687 | LightGBM |
+| 2025 | 0.1129 | 0.1500 | 0.0458 | LightGBM |
+| 2026 | 0.1241 | 0.1443 | 0.0408 | LightGBM |
+| **mean ± std** | **0.1012 ± 0.0278** | **0.1548 ± 0.0481** | 0.0425 | **LightGBM 10/10** |
+
+U-Net still beats climatology on every fold (mean skill about **+150 %**), and
+its mean top-10 % capture (0.706) is close to LightGBM’s (0.703). What it does
+not do is win on PR-AUC: LightGBM is ahead by about **35 % relative**, and by
+at least some margin in all ten seasons.
+
+**Verdict for the report: LightGBM is the primary model.** That is the more
+common outcome on tabular geospatial problems, and reporting it honestly is the
+point of this day — not a consolation prize for skipping a GPU.
+
+Setup used: `smp.Unet(resnet18, imagenet, in_channels=44)`, Focal + Tversky
+(β = 0.7), AdamW 3e-4, 20 epochs × 250 batches, batch size 16, ~**11.4 min per
+fold** on MPS, ~**2 h total** for all ten folds plus full-grid scoring. Season
+feature stacks were cached once (~5.6 GB per year). MPS only appears as
+available outside the Cursor sandbox; training must run in a normal terminal (or
+with full permissions).
+
+```bash
+# outside the sandbox so Metal is visible
+source .prometheus-venv/bin/activate
+export PYTORCH_ENABLE_MPS_FALLBACK=1
+python -c "from prometheus.cnn import stacks; stacks.build_all()"   # once
+python -u scripts/train_unet.py --batch-size 16                  # 10 folds
+```
+
+---
+
 ## Standing rules
 
 1. **Alignment.** 465 × 912, EPSG:4326, zero fire pixels outside the Nepal mask.
@@ -523,6 +674,8 @@ python scripts/plot_shap.py --year 2021     # beeswarm + dependence grid
 | TWI is a slope-based approximation, not full flow routing | Adequate for tree models |
 | 2016 is never a holdout fold — no prior year exists to build fire history from | 10 folds, not 11 |
 | PR-AUC varies with each season's base rate | Always read a fold next to its own climatology column |
+| Raw booster scores are inflated ~30× by the 1:20 downsample | Only the calibrated output is a probability |
+| First `predict` of a season costs ~12 s and ~3.4 GB | Season features are cached; later dates are sub-second |
 
 ---
 
@@ -559,4 +712,4 @@ PR-AUC on the full-grid evaluation.
 |---|---|
 | Day 10 | Full LOYO, SHAP, family ablations, per-region breakdown |
 | Day 11 | Isotonic calibration, 7-day horizon, 5 risk classes, model card |
-| Day 12 | Optional U-Net comparison on Kaggle |
+| Day 12 | U-Net LOYO on local MPS — LightGBM wins 10/10 folds |

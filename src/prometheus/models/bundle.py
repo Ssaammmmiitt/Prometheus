@@ -93,8 +93,12 @@ class ModelBundle:
             timespec="seconds"
         )
         for artifacts in self.horizons.values():
-            source = Path(artifacts.model_file)
             target = root / f"lgbm_h{artifacts.horizon}.txt"
+            # `model_file` becomes bundle-relative after the first save, so saving
+            # again (to attach benchmark results, say) must not re-copy it.
+            source = Path(artifacts.model_file)
+            if not source.is_file():
+                source = root / artifacts.model_file
             if source.resolve() != target.resolve():
                 shutil.copyfile(source, target)
             artifacts.model_file = target.name
