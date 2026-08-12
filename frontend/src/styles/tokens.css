@@ -1,0 +1,48 @@
+/* Dark = Arcade Night. Light = warm paper + ember — no green cast. */
+
+[data-theme="dark"] {
+  --surface: #0a0b08;
+  --lift: #11120f;
+  --ink: #eef0e6;
+  --muted: #8a8f80;
+  --accent: #c8ff3a;
+  --accent-fg: #0a0b08;
+  --hairline: rgba(238, 240, 230, 0.08);
+  --hairline-strong: rgba(238, 240, 230, 0.2);
+  --accent-12: rgba(200, 255, 58, 0.12);
+  --live: #ff3b3b;
+  --map-tiles: dark_all;
+}
+
+[data-theme="light"] {
+  --surface: #f7f5f1;
+  --lift: #ffffff;
+  --ink: #161513;
+  --muted: #5c5953;
+  --accent: #c2410c;
+  --accent-fg: #ffffff;
+  --hairline: rgba(22, 21, 19, 0.1);
+  --hairline-strong: rgba(22, 21, 19, 0.2);
+  --accent-12: rgba(194, 65, 12, 0.1);
+  --live: #c81e1e;
+  --map-tiles: light_all;
+}
+
+@theme inline {
+  --color-surface: var(--surface);
+  --color-lift: var(--lift);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-accent: var(--accent);
+  --color-accent-fg: var(--accent-fg);
+  --color-hairline: var(--hairline);
+  --color-live: var(--live);
+  --font-display: "Big Shoulders Display", sans-serif;
+  --font-sans: "JetBrains Mono", ui-monospace, monospace;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+  --radius-sm: 0px;
+  --radius-md: 0px;
+  --radius-lg: 2px;
+  --z-index-900: 900;
+  --z-index-1000: 1000;
+}
