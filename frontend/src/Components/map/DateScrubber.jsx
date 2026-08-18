@@ -26,6 +26,7 @@ export default function DateScrubber({
   onDate,
   playing,
   onPlaying,
+  compact = false,
 }) {
   const year = date.slice(0, 4);
   const seasonDates = useMemo(() => datesForYear(dates, year), [dates, year]);
@@ -77,7 +78,7 @@ export default function DateScrubber({
   };
 
   return (
-    <Card className="absolute bottom-3 md:bottom-4 left-1/2 -translate-x-1/2 z-900 w-[min(720px,calc(100vw-1rem))] p-3 md:p-4 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+    <Card className={`absolute bottom-3 md:bottom-4 left-1/2 -translate-x-1/2 z-920 w-[min(720px,calc(100vw-1rem))] p-3 md:p-4 pb-[max(0.75rem,var(--app-bottom))] ${compact ? "lg:p-3" : ""}`}>
       <div className="flex items-center gap-2 md:gap-3 mb-2 md:mb-3">
         <Tabs
           value={year}
@@ -86,30 +87,32 @@ export default function DateScrubber({
             onDate(next.includes(date) ? date : next[Math.floor(next.length / 2)] || date);
             onPlaying(false);
           }}
-          options={(years.length ? years : ["2024", "2025", "2026"]).map((y) => ({
+          options={(years.length ? years : ["2026", "2025", "2024"]).map((y) => ({
             value: y,
             label: y,
           }))}
         />
         <span
           key={date}
-          className="flex-1 text-center font-display font-extrabold text-xl md:text-2xl tracking-tight tabular-nums panel-enter min-w-0 truncate"
+          className="flex-1 text-center font-display font-extrabold text-lg sm:text-xl md:text-2xl tracking-tight tabular-nums panel-enter min-w-0 truncate"
         >
           {prettyDate(date)}
         </span>
-        <label className="flex flex-col justify-center shrink-0 w-[25%] max-w-[11rem] min-w-[5.5rem]">
-          <span className="label-ui text-muted leading-none mb-1">Speed</span>
-          <input
-            type="range"
-            min={0}
-            max={100}
-            step={5}
-            value={speed}
-            onChange={(e) => setSpeed(Number(e.target.value))}
-            className="w-full accent-[var(--accent)] range-compact"
-            aria-label="Playback speed"
-          />
-        </label>
+        {!compact && (
+          <label className="hidden sm:flex flex-col justify-center shrink-0 w-[25%] max-w-[11rem] min-w-[5.5rem]">
+            <span className="label-ui text-muted leading-none mb-1">Speed</span>
+            <input
+              type="range"
+              min={0}
+              max={100}
+              step={5}
+              value={speed}
+              onChange={(e) => setSpeed(Number(e.target.value))}
+              className="w-full accent-[var(--accent)] range-compact"
+              aria-label="Playback speed"
+            />
+          </label>
+        )}
         <Button
           variant={playing ? "outline" : "primary"}
           className={`px-3 md:px-[22px] min-h-11 ${playing ? "playing-cta" : ""}`}

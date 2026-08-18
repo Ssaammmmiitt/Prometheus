@@ -1,8 +1,10 @@
-# Prometheus frontend — Day 15 plan
+# Prometheus frontend — Day 15 plan (implemented)
 
-Build the operational map app inside this folder. Reuse the existing React + Vite + Tailwind + Leaflet stack. Replace the mock patch-grid dashboard with four real views wired to the Day 14 FastAPI. Visual language comes from [`Design.md`](./Design.md) (**Arcade Night**). Dark is the default; light is a switchable inversion of the same tokens, not a second design system.
+Build the operational map app inside this folder. Reuse the existing React + Vite + Tailwind + Leaflet stack. Visual language comes from [`Design.md`](./Design.md) (**Arcade Night**). Dark is the default; light is a switchable inversion of the same tokens, not a second design system.
 
-**Done when:** the app loads a real forecast from the API, the date scrubber animates through the 2024–2025 season, and light/dark can be toggled without restyling by hand.
+**Shipped:** the app loads real forecasts from the API, the date scrubber animates **Jan–May 2024–2026** (opens on **2026-04-12**), light/dark toggles without restyling by hand, **What if** lives at `/predict`, and the cell panel is a statistical explain drawer. **Tomorrow / Next 7 days** appears on the left layer card **and** in that panel; both call `setHorizon` in `ForecastContext` so the map, URL, and stats stay in lockstep.
+
+The sections below were the original build plan. Where they disagree with the shipped app, the **shipped** behaviour wins.
 
 ---
 
@@ -34,7 +36,7 @@ Declare in `src/styles/tokens.css`. Components use `var(--color-*)` / Tailwind t
 | `--color-lift` | `#11120f` | `#eef0e6` with hairline (cards sit on surface) |
 | `--color-text` | `#eef0e6` | `#0a0b08` |
 | `--color-muted` | `#8a8f80` | `#8a8f80` |
-| `--color-accent` | `#c8ff3a` | `#c8ff3a` (unchanged) |
+| `--color-accent` | `#c8ff3a` | `#c2410c` (shipped ember; Design.md’s lime-on-light was not used) |
 | `--color-accent-fg` | `#0a0b08` | `#0a0b08` |
 | `--color-hairline` | `rgba(238,240,230,0.06)` | `rgba(17,18,15,0.10)` |
 | `--color-hairline-strong` | `rgba(238,240,230,0.18)` | `rgba(17,18,15,0.18)` |
@@ -70,18 +72,19 @@ Design.md Pro tokens include bounce + rotate. That fights a map UI. Follow the *
 
 ---
 
-## 2. Pages (four views)
+## 2. Pages (five views)
 
-Routes via `react-router-dom`. Shared shell: top bar (wordmark, nav tabs, date, horizon, theme toggle).
+Routes via `react-router-dom`. Shared shell: top bar (wordmark, nav tabs, date, theme toggle). Horizon is **not** only in the header — it is `?horizon=1|7` in `ForecastContext`, toggled from the map’s left card and from the right-hand cell panel.
 
-| Route | View | BUILD_PLAN name |
+| Route | View | Notes |
 |---|---|---|
-| `/` | National risk map | National risk map |
-| `/district/:id` | District drill-down | District drill-down |
-| `/fires` | Fire explorer | Historical fire explorer |
-| `/verify` | Verification | Verification page |
+| `/` | National risk map | Default date **2026-04-12** |
+| `/predict` | What-if weather sandbox | Click a forest cell, then sliders |
+| `/district/:id` | District drill-down | Mean/max + season timeseries |
+| `/fires` | Fire explorer | FIRMS points (history, not the forecast) |
+| `/verify` | Verification | Accuracy; base rate always shown |
 
-Season constraint: forecasts exist for **Jan–May 2024 and 2025**. Default date **`2025-04-12`** (the Day 13 acceptance date). Date picker must clamp to in-season days that have artefacts; 404s become an empty state, not a crash.
+Season constraint: forecasts exist for **Jan–May 2024, 2025, and 2026**. Date picker clamps to in-season days that have artefacts; 404s become an empty state, not a crash.
 
 ### 2.1 `/` — National risk map
 
@@ -89,13 +92,13 @@ Season constraint: forecasts exist for **Jan–May 2024 and 2025**. Default date
 
 | Chrome | Behavior |
 |---|---|
-| Date scrubber | Range input + play/pause. Steps one day through the current season. Animating play is the Day 15 acceptance test. |
-| Horizon toggle | Tabs: `H1` / `H7`. Query `horizon=1\|7`. |
+| Date scrubber | Range input + play/pause. Year tabs newest-first. Animating play is the Day 15 acceptance test. |
+| Horizon toggle | Tabs: **Tomorrow** / **Next 7 days**. Query `horizon=1\|7`. Same control is repeated in the cell panel; both write `setHorizon`. |
 | Layer toggles | Risk tiles on/off + opacity. District outlines on/off. Active fires on/off. |
 | Legend | Yellow→orange→red→purple bins matching the tile colormap (not red–green). |
 | Stats strip | Count of Extreme / Very High districts from `/api/districts`. |
-| Click map | `GET /api/explain?lat=&lon=&date=&horizon=` → side drawer (top SHAP features). Off-forest → muted empty state. |
-| Click district | Navigate to `/district/:id` (keep `date` + `horizon` in the query string). |
+| Click map | `GET /api/explain?lat=&lon=&date=&horizon=` → right drawer: **calibrated %**, class badge, comparison chart (this cell / district / Nepal / typical), condition snapshot, grouped driver shares. Off-forest → muted empty state. |
+| Click district | Same explain drawer at the click point (not an immediate navigate). **See all of …** keeps `date` + `horizon` and opens `/district/:id`. |
 
 **APIs**
 
@@ -105,6 +108,8 @@ GET /api/districts?date=YYYY-MM-DD&horizon=1|7
 GET /api/fires/active?as_of=YYYY-MM-DD&lookback_days=2
 GET /api/explain?lat=&lon=&date=&horizon=&top=6
 ```
+
+`/api/explain` JSON includes `probability`, `risk_class_name`, `base_rate`, `vs_country`, `district`, `compare`, `snapshot`, `drivers`, `headline`, and `top` (raw SHAP rows for back-compat).
 
 **Leaflet risk layer**
 
@@ -128,12 +133,12 @@ Rebuild the layer when `date` or `horizon` changes (new `TileLayer` key). Do not
 |---|---|
 | Title, class badge, mean/max probability | Feature from `/api/districts?date&horizon` |
 | Time series chart | `/api/districts/{id}/timeseries?horizon&start&end` |
-| Horizon tabs | Same H1/H7 as the map |
+| Horizon tabs | Same **Tomorrow / Next 7 days** as the map (`setHorizon`) |
 | Back to national | `/` with query preserved |
 
 Chart: Recharts line, volt lime, 18% fill, no gridlines, mono axis labels. Highlight the selected date (single-point strategy from Design.md).
 
-`start` / `end` default to the season of the selected date (e.g. `2025-01-01` … `2025-05-31`).
+`start` / `end` default to the season of the selected date (e.g. `2026-01-01` … `2026-05-31`).
 
 ### 2.3 `/fires` — Fire explorer
 
@@ -145,7 +150,7 @@ Not a second risk map. FIRMS detections as points.
 | Lookback 1–7 days | same |
 | Optional risk underlay | same tile URL as `/` |
 
-Points: small squares (not round pins — system is sharp). Live-red only if `as_of` is “today” *and* detections exist; otherwise bone/muted. This page is historical for 2024–2025 cube dates.
+Points: small squares (not round pins — system is sharp). Live-red only if `as_of` is “today” *and* detections exist; otherwise bone/muted. This page is historical for 2024–2026 cube dates.
 
 Empty / out-of-cube dates: copy that detections exist only where the fire cube has that day — do not invent points.
 
@@ -161,7 +166,18 @@ No map required (optional small Nepal inset later). This is the honesty page.
 
 Copy that must appear: daily PR-AUC is noisier than season-level LOYO (Day 10 mean **0.1548**). Always show **base rate** next to a metric. Quiet days (`valid: false`) stay in the table as em-dash, not zero.
 
-Default range: `2024-01-01` … `2025-05-30`.
+Default range: `2024-01-01` … `2026-05-30`.
+
+---
+
+### 2.5 `/predict` — What if
+
+Click a forest cell on the map, then move weather sliders (clamped to training p1–p99). VPD and dewpoint are derived from T+RH. Response: baseline vs scenario calibrated chance, class, grouped SHAP. Not a yes/no fire.
+
+```
+GET /api/whatif/schema
+POST /api/whatif   { lat, lon, date, horizon, overrides }
+```
 
 ---
 
@@ -203,19 +219,21 @@ Thin wrappers:
 | `getActiveFires({ asOf, lookbackDays, limit })` | `/api/fires/active` |
 | `getVerification({ start, end })` | `/api/verification` |
 | `getExplain({ lat, lon, date, horizon, top })` | `/api/explain` |
+| `getWhatIfSchema()` | `/api/whatif/schema` |
+| `postWhatIf({ … })` | `/api/whatif` |
 | `riskTileUrl({ date, horizon })` | template string for Leaflet |
 
 Cache: React `useQuery`-style is optional; a small in-memory map keyed by URL is enough. District GeoJSON is ~77 features — fine to refetch on date change. Timeseries hits every `districts_*.geojson` on the server; call it on district pages only, not on every map pan.
 
 ### 3.3 Query-string state
 
-Share `?date=2025-04-12&horizon=1` across `/`, `/district/:id`, `/fires`. Theme stays in `localStorage`, not the URL.
+Share `?date=2026-04-12&horizon=1` across `/`, `/predict`, `/district/:id`, `/fires`. Theme stays in `localStorage`, not the URL.
 
 ### 3.4 Error / empty states
 
 | Case | UI |
 |---|---|
-| 404 missing COG / districts | “No forecast for this date (Jan–May 2024–2025).” |
+| 404 missing COG / districts | “No forecast for this date (Jan–May 2024–2026).” |
 | 404 no fires | “No detections in this window.” |
 | 400 explain off-mask | “Outside the forest mask — no model score.” |
 | API down | Banner: start `make api`. |
@@ -264,6 +282,7 @@ frontend/
       charts/VerificationSparkline.jsx
     pages/
       MapPage.jsx
+      PredictPage.jsx
       DistrictPage.jsx
       FiresPage.jsx
       VerifyPage.jsx
@@ -351,7 +370,7 @@ Never use the old green→red patch colors.
 - Live GEE “today” (cube ends at last exported season day)
 - Editing forecasts
 - New chart libraries (Recharts is enough)
-- Inventing extra pages (settings, about, model card) — a one-line footer link to the thesis is enough: *static susceptibility vs daily forecast*
+- Inventing extra pages beyond Map / What if / District / Fires / Accuracy
 
 ---
 
@@ -365,4 +384,4 @@ cd frontend && npm run dev
 ```
 
 Open `http://localhost:5173`. Confirm tiles:  
-`http://localhost:5173/api/risk/tiles/0/0/0.png?date=2025-04-12&horizon=1`
+`http://localhost:5173/api/risk/tiles/0/0/0.png?date=2026-04-12&horizon=1`

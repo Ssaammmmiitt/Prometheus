@@ -14,7 +14,7 @@ from typing import Any
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from prometheus.api.routes import districts, explain, fires, meta, risk_tiles, verification
+from prometheus.api.routes import districts, explain, fires, meta, risk_tiles, verification, whatif
 
 
 def forecasts_root() -> Path:
@@ -55,6 +55,11 @@ def _explain_router() -> Any:
     return explain.router()
 
 
+@lru_cache(maxsize=1)
+def _whatif_router() -> Any:
+    return whatif.router()
+
+
 def create_app() -> FastAPI:
     app = FastAPI(
         title="Prometheus API",
@@ -76,6 +81,7 @@ def create_app() -> FastAPI:
     app.include_router(_fires_router(), prefix="/api")
     app.include_router(_verification_router(), prefix="/api")
     app.include_router(_explain_router(), prefix="/api")
+    app.include_router(_whatif_router(), prefix="/api")
     return app
 
 

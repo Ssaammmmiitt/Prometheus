@@ -20,13 +20,14 @@ function pct(v) {
 
 export default function DistrictPage() {
   const { id } = useParams();
-  const { date, horizon, setHorizon, query } = useForecast();
+  const { date, horizon, setHorizon, query, dates, ready } = useForecast();
   const [geojson, setGeojson] = useState(null);
   const [series, setSeries] = useState([]);
   const [error, setError] = useState(null);
   const season = seasonBounds(date);
 
   useEffect(() => {
+    if (!ready || !dates.includes(date)) return undefined;
     let cancelled = false;
     getDistricts({ date, horizon })
       .then((body) => {
@@ -38,7 +39,7 @@ export default function DistrictPage() {
     return () => {
       cancelled = true;
     };
-  }, [date, horizon]);
+  }, [date, dates, horizon, ready]);
 
   useEffect(() => {
     let cancelled = false;
@@ -71,7 +72,9 @@ export default function DistrictPage() {
     <div className="absolute inset-0 pt-14 flex flex-col md:flex-row">
       <div className="h-[38vh] md:h-auto md:flex-1 relative min-w-0">
         <NepalMap zoom={7}>
-          <RiskTileLayer date={date} horizon={horizon} opacity={0.45} />
+          {ready && dates.includes(date) && (
+            <RiskTileLayer date={date} horizon={horizon} opacity={0.45} />
+          )}
           {geojson && (
             <DistrictLayer
               geojson={geojson}

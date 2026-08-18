@@ -36,6 +36,30 @@ export async function apiGet(path, params = {}) {
   return resp.json();
 }
 
+export async function apiPost(path, body) {
+  let resp;
+  try {
+    resp = await fetch(path, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+  } catch {
+    throw new ApiError(0, "API unreachable — start the backend with `make api`.");
+  }
+  if (!resp.ok) {
+    let detail = resp.statusText;
+    try {
+      const parsed = await resp.json();
+      detail = parsed.detail ?? parsed;
+    } catch {
+      /* ignore */
+    }
+    throw new ApiError(resp.status, detail);
+  }
+  return resp.json();
+}
+
 export function getHealth() {
   return apiGet("/api/health");
 }
@@ -66,6 +90,14 @@ export function getVerification({ start, end } = {}) {
 
 export function getExplain({ lat, lon, date, horizon, top = 6 }) {
   return apiGet("/api/explain", { lat, lon, date, horizon, top });
+}
+
+export function getWhatIfSchema() {
+  return apiGet("/api/whatif/schema");
+}
+
+export function postWhatIf({ lat, lon, date, horizon, overrides = {}, top = 8 }) {
+  return apiPost("/api/whatif", { lat, lon, date, horizon, overrides, top });
 }
 
 export function riskTileUrl({ date, horizon }) {
