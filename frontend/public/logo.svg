@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="Prometheus">
+  <rect width="128" height="128" fill="#0a0b08"/>
+  <path
+    fill="none"
+    stroke="#eef0e6"
+    stroke-width="3"
+    stroke-linejoin="miter"
+    opacity="0.35"
+    d="M12 96 L36 64 L52 80 L72 44 L92 72 L116 56"
+  />
+  <path
+    fill="#c8ff3a"
+    d="M64 18
+       C72.8 34.8 78 45.2 71.2 54.8
+       C84.8 57.2 96 68.4 96 82.8
+       C96 99.6 81.6 112 64 112
+       C46.4 112 32 99.6 32 82.8
+       C32 69.2 40.8 58.8 52.8 54.8
+       C47.2 44.4 53.6 32.4 64 18Z"
+  />
+  <path
+    fill="#0a0b08"
+    d="M64 56
+       C68.4 61.6 71.2 66.4 71.2 73.6
+       C71.2 81.6 68 87.2 64 87.2
+       C60 87.2 56.8 81.6 56.8 73.6
+       C56.8 66.4 59.6 61.6 64 56Z"
+  />
+</svg>
