@@ -108,8 +108,47 @@ def router_factory(root_fn):
         end: str | None = None,
     ):
         root = Path(root_fn())
-        table = load_timeseries_table(root)
-        rows = table.get(str(int(district_id)), [])
+        
+        # Try SQLite first
+        rows = []
+        try:
+            from prometheus.db import get_connection
+            conn = get_connection(root)
+            try:
+                query = "SELECT forecast_date as date, mean_prob, max_prob FROM district_stats WHERE district_id = ? AND horizon = ?"
+                params = [str(district_id), horizon]
+                if start:
+                    query += " AND forecast_date >= ?"
+                    params.append(start)
+                if end:
+                    query += " AND forecast_date <= ?"
+                    params.append(end)
+                query += " ORDER BY forecast_date"
+                
+                cursor = conn.execute(query, params)
+                for row in cursor:
+                    rows.append({
+                        "date": row["date"],
+                        f"mean_h{horizon}": row["mean_prob"],
+                        f"max_h{horizon}": row["max_prob"],
+                    })
+            finally:
+                conn.close()
+        except Exception:
+            pass
+            
+        # Fallback to old flat file cache if SQLite has no data for this district
+        if not rows:
+            table = load_timeseries_table(root)
+            all_rows = table.get(str(int(district_id)), [])
+            for row in all_rows:
+                day = row["date"]
+                if start and day < start:
+                    continue
+                if end and day > end:
+                    continue
+                rows.append(row)
+                
         if not rows:
             raise HTTPException(
                 status_code=404, detail=f"district {district_id} not found"
@@ -120,10 +159,6 @@ def router_factory(root_fn):
         out = []
         for row in rows:
             day = row["date"]
-            if start and day < start:
-                continue
-            if end and day > end:
-                continue
             mean_prob = row.get(f"mean_h{horizon}")
             max_prob = row.get(f"max_h{horizon}")
             if mean_prob is None:

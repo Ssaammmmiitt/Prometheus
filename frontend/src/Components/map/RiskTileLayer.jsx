@@ -56,6 +56,7 @@ export default function RiskTileLayer({ date, horizon, opacity = 0.65 }) {
         updateWhenZooming={false}
         zIndex={410}
         attribution="Prometheus risk"
+        className="transition-opacity duration-500 ease-in-out"
       />
       {pending && (
         <TileLayer
@@ -67,9 +68,16 @@ export default function RiskTileLayer({ date, horizon, opacity = 0.65 }) {
           keepBuffer={6}
           updateWhenZooming={false}
           zIndex={411}
+          className="transition-opacity duration-500 ease-in-out"
           eventHandlers={{
-            load: () => {
-              if (sameDay(pendingRef.current, pending)) adopt(pending);
+            load: (e) => {
+              // Fade in the new layer
+              e.target.setOpacity(opacity);
+              
+              // Wait for the transition to complete before making it the shown layer
+              setTimeout(() => {
+                if (sameDay(pendingRef.current, pending)) adopt(pending);
+              }, 500);
             },
           }}
         />

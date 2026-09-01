@@ -44,8 +44,11 @@ def score_forecast_day(
     observed = next_day_fire(day)
     mask = forest.forest_mask() & np.isfinite(risk)
 
-    y = observed[mask].ravel().astype(np.float64)
-    p = risk[mask].ravel().astype(np.float64)
+    y_2d = observed.astype(np.float64)
+    p_2d = risk.astype(np.float64)
+    y = y_2d[mask].ravel()
+    p = p_2d[mask].ravel()
+    
     if y.size == 0 or y.sum() == 0:
         # Quiet day: still record the row so the series is continuous.
         return {
@@ -58,6 +61,8 @@ def score_forecast_day(
             "pr_auc": float("nan"),
             "brier": metrics.brier(y, p) if y.size else float("nan"),
             "top10_capture": float("nan"),
+            "fss": float("nan"),
+            "rev": float("nan"),
             "valid": False,
         }
 
@@ -71,6 +76,8 @@ def score_forecast_day(
         "pr_auc": metrics.pr_auc(y, p),
         "brier": metrics.brier(y, p),
         "top10_capture": metrics.top_k_capture(y, p, 0.10),
+        "fss": metrics.fss(y_2d, p_2d, mask=mask, threshold=0.10, window_size=5),
+        "rev": metrics.rev(y, p, c_ratio=0.10),
         "valid": True,
     }
 
@@ -101,6 +108,31 @@ def verify_range(
         d += timedelta(days=1)
 
     frame = pd.DataFrame(rows)
+    
+    # Write to SQLite
+    if not frame.empty:
+        from prometheus.db import get_connection, init_db
+        init_db(root)
+        conn = get_connection(root)
+        try:
+            for _, row in frame.iterrows():
+                conn.execute(
+                    """
+                    INSERT OR REPLACE INTO verification_metrics 
+                    (forecast_date, observe_date, n, n_pos, base_rate, mean_forecast, pr_auc, brier, top10_capture, fss, rev, valid)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        row["forecast_date"], row["observe_date"], row["n"], row["n_pos"], 
+                        row["base_rate"], row["mean_forecast"], row["pr_auc"], row["brier"], 
+                        row["top10_capture"], row.get("fss"), row.get("rev"), row["valid"]
+                    )
+                )
+            conn.commit()
+        finally:
+            conn.close()
+            
+    # For backward compatibility with other scripts, also write to CSV if it existed
     out = verification_path(root)
     if append and out.is_file() and not frame.empty:
         prior = pd.read_csv(out)
@@ -109,6 +141,7 @@ def verify_range(
         frame = frame.sort_values("forecast_date")
     if not frame.empty:
         frame.to_csv(out, index=False)
+        
     return frame
 
 

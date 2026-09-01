@@ -9,16 +9,39 @@ from fastapi import APIRouter
 
 router_app = APIRouter()
 
-DEFAULT_DATE = "2025-04-12"
+# Peak-season landing dates, newest year first. The map opens on the first
+# of these that actually exists on disk.
+PREFERRED_DEFAULTS = ("2026-04-12", "2025-04-12", "2024-04-12")
+DEFAULT_DATE = PREFERRED_DEFAULTS[0]
 
 
 def _default(dates: list[str]) -> str | None:
-    if DEFAULT_DATE in dates:
-        return DEFAULT_DATE
-    return dates[-1] if dates else None
+    for preferred in PREFERRED_DEFAULTS:
+        if preferred in dates:
+            return preferred
+    years = sorted({d[:4] for d in dates})
+    if not years:
+        return dates[-1] if dates else None
+    year_dates = [d for d in dates if d.startswith(years[-1])]
+    return year_dates[len(year_dates) // 2] if year_dates else dates[-1]
 
 
 def available_dates(root: Path, horizon: int = 1) -> list[str]:
+    # Try querying SQLite first
+    try:
+        from prometheus.db import get_connection
+        conn = get_connection(root)
+        try:
+            cursor = conn.execute("SELECT forecast_date FROM forecasts ORDER BY forecast_date")
+            dates = [row["forecast_date"] for row in cursor]
+            if dates:
+                return dates
+        finally:
+            conn.close()
+    except Exception:
+        pass
+
+    # Fallback to scanning flat files
     dates = []
     for path in root.glob(f"risk_*_h{horizon}.tif"):
         # risk_YYYY-MM-DD_h1.tif
@@ -64,4 +87,4 @@ def router(root: Path | None = None) -> Any:
     return router_factory(lambda: root)
 
 
-__all__ = ["DEFAULT_DATE", "available_dates", "router"]
+__all__ = ["DEFAULT_DATE", "PREFERRED_DEFAULTS", "available_dates", "router"]

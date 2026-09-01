@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import shutil
 from dataclasses import dataclass, field
@@ -70,6 +71,7 @@ class ModelBundle:
     risk_class_names: list[str]
     risk_quantiles: list[float]
     created_at: str = ""
+    bundle_hash: str = ""
     notes: dict[str, Any] = field(default_factory=dict)
     root: Path | None = None
 
@@ -77,6 +79,7 @@ class ModelBundle:
         return {
             "version": self.version,
             "created_at": self.created_at,
+            "bundle_hash": self.bundle_hash,
             "train_years": self.train_years,
             "calibration_year": self.calibration_year,
             "test_year": self.test_year,
@@ -92,6 +95,9 @@ class ModelBundle:
         self.created_at = self.created_at or datetime.now(timezone.utc).isoformat(
             timespec="seconds"
         )
+        
+        hasher = hashlib.sha256()
+        
         for artifacts in self.horizons.values():
             target = root / f"lgbm_h{artifacts.horizon}.txt"
             # `model_file` becomes bundle-relative after the first save, so saving
@@ -102,6 +108,17 @@ class ModelBundle:
             if source.resolve() != target.resolve():
                 shutil.copyfile(source, target)
             artifacts.model_file = target.name
+            
+            # Hash the model file
+            hasher.update(target.read_bytes())
+            
+        # Hash the non-hash manifest content
+        self.bundle_hash = ""
+        payload = json.dumps(self.to_dict(), sort_keys=True)
+        hasher.update(payload.encode("utf-8"))
+        
+        self.bundle_hash = hasher.hexdigest()
+        
         (root / MANIFEST).write_text(
             json.dumps(self.to_dict(), indent=2), encoding="utf-8"
         )
@@ -131,6 +148,7 @@ class ModelBundle:
             risk_class_names=payload["risk_class_names"],
             risk_quantiles=payload["risk_quantiles"],
             created_at=payload.get("created_at", ""),
+            bundle_hash=payload.get("bundle_hash", ""),
             notes=payload.get("notes", {}),
             root=root,
         )

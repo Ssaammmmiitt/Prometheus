@@ -82,6 +82,25 @@ def create_app() -> FastAPI:
     app.include_router(_verification_router(), prefix="/api")
     app.include_router(_explain_router(), prefix="/api")
     app.include_router(_whatif_router(), prefix="/api")
+
+    # Serve static frontend if it exists
+    from fastapi.staticfiles import StaticFiles
+    from fastapi.responses import FileResponse
+    from starlette.exceptions import HTTPException as StarletteHTTPException
+    
+    frontend_dist = Path(__file__).parent.parent.parent.parent.parent / "frontend" / "dist"
+    if frontend_dist.is_dir():
+        app.mount("/assets", StaticFiles(directory=frontend_dist / "assets"), name="assets")
+        
+        @app.get("/{full_path:path}")
+        async def serve_frontend(full_path: str):
+            # If the path looks like a file, try to serve it directly
+            potential_file = frontend_dist / full_path
+            if potential_file.is_file():
+                return FileResponse(potential_file)
+            # Otherwise, fall back to index.html for React Router
+            return FileResponse(frontend_dist / "index.html")
+            
     return app
 
 

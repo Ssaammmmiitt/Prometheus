@@ -10,7 +10,7 @@ export function ForecastProvider({ children }) {
   const [params, setParams] = useSearchParams();
   const [catalog, setCatalog] = useState({
     dates: [],
-    years: ["2024", "2025", "2026"],
+    years: ["2026", "2025", "2024"],
     default_date: DEFAULT_DATE,
     horizons: [1, 7],
   });
@@ -37,20 +37,24 @@ export function ForecastProvider({ children }) {
   }, []);
 
   const [liveDate, setLiveDate] = useState(null);
-  const urlDate = params.get("date") || catalog.default_date || DEFAULT_DATE;
-  const date = liveDate ?? urlDate;
+  const urlDate = params.get("date");
+  const fallback = catalog.default_date || DEFAULT_DATE;
+  const date = liveDate ?? urlDate ?? fallback;
   const horizon = Number(params.get("horizon")) === 7 ? 7 : 1;
 
   useEffect(() => {
+    if (!ready) return;
     const known = catalog.dates ?? [];
     if (!known.length) return;
-    if (!known.includes(date) && catalog.default_date) {
-      const sp = new URLSearchParams(params);
-      sp.set("date", catalog.default_date);
-      sp.set("horizon", String(horizon));
-      setParams(sp, { replace: true });
-    }
-  }, [catalog, date, horizon, params, setParams]);
+    const landing = catalog.default_date || fallback;
+    const needsDate = !urlDate || !known.includes(date);
+    if (!needsDate) return;
+    const next = known.includes(landing) ? landing : known[Math.floor(known.length / 2)];
+    const sp = new URLSearchParams(params);
+    sp.set("date", next);
+    sp.set("horizon", String(horizon));
+    setParams(sp, { replace: true });
+  }, [catalog, date, fallback, horizon, params, ready, setParams, urlDate]);
 
   const patch = useCallback(
     (next) => {
@@ -93,7 +97,7 @@ export function ForecastProvider({ children }) {
       setHorizon,
       catalog,
       dates: catalog.dates ?? [],
-      years: catalog.years ?? ["2024", "2025", "2026"],
+      years: [...(catalog.years ?? ["2026", "2025", "2024"])].sort((a, b) => b.localeCompare(a)),
       apiError,
       ready,
       query,

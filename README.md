@@ -15,25 +15,30 @@ Measured results: **[PROGRESS_REPORT.md](PROGRESS_REPORT.md)**
 
 | URL | What it is |
 |---|---|
-| http://localhost:5173 | Map, fires, district pages, accuracy |
+| http://localhost:5173 | Map (opens on **12 Apr 2026**), districts, fires, accuracy |
+| http://localhost:5173/predict | What-if weather sandbox (click a forest cell, then sliders) |
 | http://localhost:8000/docs | Live API |
 | http://localhost:8000/api/health | Forecast count + default date |
 
 The map paints **calibrated** fire probability (yellow → purple). 🔥 markers
 are satellite detections that already happened — not the forecast.
 
+**Tomorrow / Next 7 days** lives in two places and stays in sync: the left
+layer card, and the right-hand cell panel after you click the map. Query
+string: `?date=2026-04-12&horizon=1` or `horizon=7`. Click a forest cell for
+the chance (%), a comparison chart, conditions, and grouped drivers — not
+SHAP slogans.
+
 ---
 
-## Why the map shows 2024–2025, not 2026
+## Years on the map (2024, 2025, and 2026)
 
 The **model was trained and tested on 2016–2026**. 2026 is a real evaluation
-year (PR-AUC 0.144). The **website only lists years that were written as daily
-GeoTIFFs**. The first backfill was 2024 and 2025 (~303 days), as specified in
-the build plan.
+year (PR-AUC 0.144). The website lists every year that has daily GeoTIFFs
+under `runs/forecasts/`. After the 2026 backfill, that is **January–May
+2024, 2025, and 2026**. The map **opens on 12 April 2026** (peak season).
 
-2026 is not missing from science; it was not exported to `runs/forecasts/`
-yet. To put it on the map (needs the feature cube for 2026, which this repo
-already has if you built through Day 8):
+If 2026 maps are missing on a fresh machine:
 
 ```bash
 source .prometheus-venv/bin/activate
@@ -41,8 +46,7 @@ python scripts/forecast.py --backfill 2026
 python scripts/forecast.py --verify 2026-01-01 2026-05-30
 ```
 
-Then refresh the app. The year tabs come from `/api/forecasts`, not a hardcoded
-list.
+Then refresh. Year tabs come from `/api/forecasts`.
 
 ---
 
@@ -88,7 +92,7 @@ make api          # http://127.0.0.1:8000
 make ui           # http://localhost:5173
 ```
 
-Open **http://localhost:5173**. Default date is **12 Apr 2025**.
+Open **http://localhost:5173**. Default date is **12 Apr 2026**.
 
 If tiles 404, the API is not running or `runs/forecasts/` is empty — use Path B
 from “Inference” downward.
@@ -185,11 +189,9 @@ python -u scripts/train_unet.py --batch-size 16
 ### B6. Daily maps the website can serve
 
 ```bash
-make forecast DATE=2025-04-12
-make backfill-forecasts                       # 2024 + 2025
-# optional:
-# python scripts/forecast.py --backfill 2026
-make verify-forecasts
+make forecast DATE=2026-04-12
+make backfill-forecasts                       # 2024 + 2025 + 2026
+make verify-forecasts                         # 2024-01-01 … 2026-05-30
 ```
 
 Then `make api` and `make ui` as in Path A.
@@ -201,9 +203,9 @@ Then `make api` and `make ui` as in Path A.
 ```bash
 source .prometheus-venv/bin/activate
 
-make forecast DATE=2025-04-12     # one day → COGs + districts GeoJSON
-make backfill-forecasts           # 2024–2025 seasons
-make verify-forecasts             # score h1 vs next-day FIRMS
+make forecast DATE=2026-04-12     # one day → COGs + districts GeoJSON (auto-ingested to SQLite)
+make backfill-forecasts           # 2024–2026 seasons
+make verify-forecasts             # score h1 vs next-day FIRMS (writes to SQLite)
 make api                          # FastAPI :8000
 make ui                           # Vite :5173  (proxies /api → :8000)
 
@@ -212,13 +214,26 @@ ruff check src scripts tests
 cd frontend && npm run lint && npm run build
 ```
 
+---
+
+## Free-Tier Deployment (Hugging Face Spaces)
+
+This project has been optimized for **zero-infrastructure free-tier deployment**. It uses a local SQLite database for performance and a single Docker container to serve both the FastAPI backend and the React frontend.
+
+1. **Docker**: The included `Dockerfile` performs a multi-stage build. It compiles the React app and then sets up FastAPI to serve it alongside the `/api` routes on port `7860`.
+2. **Persistent Storage**: On Hugging Face Spaces, you can mount persistent storage to `/data`. The app automatically detects `PROMETHEUS_FORECASTS_ROOT=/data/forecasts` to store the `prometheus.db` and maps, so they survive container restarts.
+3. **Reproducibility**: Every model bundle and output map gets tagged with a SHA-256 content hash.
+
+To deploy: Create a Docker Space on Hugging Face, enable persistent storage at `/data`, and push the repository.
+
 Useful API checks:
 
 ```bash
 curl -s http://127.0.0.1:8000/api/health
 curl -s http://127.0.0.1:8000/api/forecasts | head
 curl -s -o /tmp/t.png -w "%{http_code} %{size_download}\n" \
-  "http://127.0.0.1:8000/api/risk/tiles/7/93/53.png?date=2025-04-12&horizon=1"
+  "http://127.0.0.1:8000/api/risk/tiles/7/93/53.png?date=2026-04-12&horizon=1"
+curl -s "http://127.0.0.1:8000/api/whatif/schema" | head
 ```
 
 ---
@@ -232,14 +247,16 @@ src/prometheus/
   grid.py                  465×912, EPSG:4326
   data/                    FIRMS download → cube
   features/                weather, veg, forest mask, training table
-  eval/                    metrics, climatology, leave-one-year-out
-  models/                  LightGBM, calibration, frozen bundle, predict
+  eval/                    metrics (PR-AUC, FSS, REV), climatology, LOYO
+  models/                  LightGBM, calibration, frozen hashed bundle, predict
   cnn/                     optional U-Net (lost to LightGBM)
   infer/                   COG write, districts, backfill, verification
-  api/                     FastAPI routes
+  api/                     FastAPI (tiles, districts, fires, verify, explain, what-if)
+  db.py                    SQLite database schema and connection manager
 gee/                       Earth Engine export scripts
 scripts/                   CLIs only
-frontend/                  React + Vite + Leaflet
+frontend/                  React + Vite + Leaflet (with PWA/Mobile support)
+Dockerfile                 Multi-stage build for free-tier hosting
 tests/
 docs/                      manuals + report draft
 data/  runs/               gitignored runtime artefacts
@@ -256,12 +273,14 @@ BUILD_PLAN.md              original 3-week plan
 |---|---|---|
 | Website loads, map is blank / “API down” | FastAPI not running | `make api` in another terminal |
 | `/api/risk/tiles/...` 404 | No COG for that date | `make forecast DATE=YYYY-MM-DD` or backfill |
+| First map click is slow / API `Killed: 9` | Season warm-up (~3–4 GB) | Restart `make api` (no `--reload`); wait ~12 s |
+| `ZarrUserWarning` about `.DS_Store` | Finder junk inside a cube | Harmless; cubes strip it on open |
+| `/api/explain` 400 forest mask | Click is city / ice / water | Click a greener cell |
 | `date outside the modelled Jan–May season` | June–December | Only Jan–May exists by design |
 | FIRMS HTTP 400 | `day_range` > 5 or wrong DATE | See `src/prometheus/data/firms.py` |
 | `osgeo` / GDAL missing | Optional; rasterio is enough | Ignore unless rasterio itself fails |
 | U-Net / MPS not found | Cursor sandbox hides Metal | Run `train_unet.py` in a normal Terminal |
 | Light mode looks wrong after an update | Cached CSS | Hard refresh the browser |
-| `districts` timeseries is slow the first time | Builds `_district_ts.json` | Wait once; later calls are instant |
 | Port 8000 or 5173 busy | Old server still running | Kill that process or change `--port` |
 
 ---

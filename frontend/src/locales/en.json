@@ -1,0 +1,25 @@
+{
+  "nav": {
+    "map": "Map",
+    "compare": "Compare",
+    "whatif": "What if",
+    "fires": "Fires",
+    "accuracy": "Accuracy"
+  },
+  "header": {
+    "subtitle": "Nepal fire chance · {{date}}"
+  },
+  "map": {
+    "layers": "Layers",
+    "show": "Show",
+    "hide": "Hide",
+    "dangerColors": "Danger colors",
+    "colorStrength": "Color strength {{pct}}%",
+    "districtBorders": "District borders",
+    "recentFires": "Recent fires",
+    "loading": "Loading forecast",
+    "loadingDesc": "Opening the 2026 season on the map first.",
+    "noMap": "No map for this day",
+    "noMapDesc": "Forecasts cover January–May 2024, 2025, and 2026. This day has no map on disk — pick another date from the scrubber, or wait for the catalogue to load."
+  }
+}

@@ -32,7 +32,7 @@ def districts_path(when, root: Path | None = None) -> Path:
     return (root or forecasts_dir()) / f"districts_{day}.geojson"
 
 
-def write_risk_cog(array: np.ndarray, path: Path) -> Path:
+def write_risk_cog(array: np.ndarray, path: Path, tags: dict[str, str] = None) -> Path:
     """
     Write a single-band risk surface as a QGIS-friendly COG-like GeoTIFF.
 
@@ -61,11 +61,16 @@ def write_risk_cog(array: np.ndarray, path: Path) -> Path:
     with rasterio.open(path, "w", **profile) as dst:
         dst.write(written, 1)
         dst.set_band_description(1, "fire risk probability (calibrated)")
-        dst.update_tags(
-            AREA_OR_POINT="Area",
-            PROMETHEUS_VAR="risk",
-            PROMETHEUS_UNITS="probability",
-        )
+        
+        base_tags = {
+            "AREA_OR_POINT": "Area",
+            "PROMETHEUS_VAR": "risk",
+            "PROMETHEUS_UNITS": "probability",
+        }
+        if tags:
+            base_tags.update(tags)
+        dst.update_tags(**base_tags)
+        
         factors = [2, 4, 8, 16]
         dst.build_overviews(factors, Resampling.average)
         dst.update_tags(ns="rio_overview", resampling="average")

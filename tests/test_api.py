@@ -63,6 +63,14 @@ def test_explain_endpoint_smoke():
     assert payload["horizon"] == 1
     assert len(payload["top"]) == 6
     assert all("feature" in it for it in payload["top"])
+    assert 0.0 <= float(payload["probability"]) <= 1.0
+    assert payload["compare"][0]["id"] == "here"
+    assert payload["snapshot"]
+    assert payload["drivers"]
+    shares = [d["share"] for d in payload["drivers"]]
+    assert all(0 <= s <= 1 for s in shares)
+    assert abs(sum(shares) - 1.0) < 1e-6
+    assert "chance of a satellite fire detection" in payload["headline"]
 
 
 def test_health_and_forecast_catalogue():
@@ -75,7 +83,10 @@ def test_health_and_forecast_catalogue():
     body = cat.json()
     assert "dates" in body
     if body["dates"]:
-        assert "2025-04-12" in body["dates"] or body["default_date"] in body["dates"]
+        assert body["default_date"] in body["dates"]
+        years = {d[:4] for d in body["dates"]}
+        if "2026" in years:
+            assert "2026-04-12" in body["dates"] or body["default_date"].startswith("2026")
 
 
 def test_tile_outside_bounds_is_transparent_png():

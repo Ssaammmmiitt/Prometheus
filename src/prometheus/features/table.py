@@ -36,9 +36,12 @@ def norm_stats_path(version: int = STATS_VERSION) -> Path:
 def _fire_cube():
     import xarray as xr
 
+    from prometheus.features.cube import strip_finder_junk
+
     path = load_settings().paths.resolve("cube") / "fire_daily.zarr"
     if not path.exists():
         raise FileNotFoundError(f"Fire labels missing: {path}")
+    strip_finder_junk(path)
     return xr.open_zarr(path, consolidated=False)
 
 

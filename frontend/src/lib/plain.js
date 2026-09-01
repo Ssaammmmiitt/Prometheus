@@ -36,7 +36,7 @@ export const FEATURE_LABELS = {
   lst_day: "Ground heat, day",
   lst_night: "Ground heat, night",
   lst_diff: "Day–night ground heat gap",
-  fire_clim: "This area has burned before",
+  fire_clim: "Usual fire rate this date",
   days_since_fire: "Days since last fire",
   fires_1yr: "Fires in the last year",
   fires_3yr: "Fires in the last 3 years",
@@ -75,9 +75,20 @@ const EXPLAIN_GROUPS = {
   v10: "wind",
   wind_speed: "wind",
   wind_max_7d: "wind",
+  fire_clim: "fire_hist",
+  days_since_fire: "fire_hist",
   fires_1yr: "fire_hist",
   fires_3yr: "fire_hist",
   fires_5yr: "fire_hist",
+  rh: "moisture",
+  rh_min_7d: "moisture",
+  vpd: "moisture",
+  d2m: "moisture",
+  precip: "rain",
+  precip_7d: "rain",
+  precip_30d: "rain",
+  consecutive_dry_days: "rain",
+  days_since_rain: "rain",
   ndvi: "green",
   evi: "green",
   ndvi_anomaly: "green",
@@ -91,7 +102,9 @@ const GROUP_LABELS = {
   heat: "Heat",
   season: "Time of year",
   wind: "Wind",
-  fire_hist: "Fire history here",
+  fire_hist: "Fire history",
+  moisture: "Humidity and dry air",
+  rain: "Rain and dry spell",
   green: "How green the plants are",
   aspect: "Hillside direction",
   elev: "Elevation",
@@ -118,24 +131,19 @@ export function prepareExplain(rows, limit = 4) {
   }));
   merged.sort((a, b) => b.abs - a.abs);
   const top = merged.filter((row) => row.abs > 0).slice(0, limit);
-  const maxAbs = top[0]?.abs || 1;
+  const total = merged.reduce((sum, row) => sum + row.abs, 0) || 1;
   return top.map((row) => ({
     ...row,
-    pct: Math.max(12, Math.round((row.abs / maxAbs) * 100)),
+    share: row.abs / total,
+    pct: Math.max(4, Math.round((row.abs / total) * 100)),
   }));
-}
-
-export function explainHeadline(row) {
-  if (!row) return "Nothing strong stands out at this patch.";
-  return row.up
-    ? `${row.label} is the main reason this place looks more dangerous.`
-    : `${row.label} is the main reason this place looks quieter.`;
 }
 
 export const RISK_WORDS = {
   Low: "Quiet",
   Moderate: "Watch",
   High: "Elevated",
+  VeryHigh: "Serious",
   "Very High": "Serious",
   Extreme: "Most dangerous",
 };

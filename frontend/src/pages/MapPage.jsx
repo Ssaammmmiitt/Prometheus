@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { Layers } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 import { getActiveFires, getDistricts } from "../api/client";
 import DateScrubber from "../components/map/DateScrubber";
@@ -16,7 +17,8 @@ import { FlameGlyph } from "../lib/flameMark.js";
 import { useForecast } from "../state/ForecastContext";
 
 export default function MapPage() {
-  const { date, horizon, setDate, setHorizon, dates, years, query } = useForecast();
+  const { date, horizon, setDate, setHorizon, dates, years, ready } = useForecast();
+  const { t } = useTranslation();
   const [geojson, setGeojson] = useState(null);
   const [geoError, setGeoError] = useState(null);
   const [playing, setPlaying] = useState(false);
@@ -27,10 +29,11 @@ export default function MapPage() {
   const [fires, setFires] = useState([]);
   const [explain, setExplain] = useState(null);
   const [layersOpen, setLayersOpen] = useState(
-    () => typeof window !== "undefined" && window.matchMedia("(min-width: 768px)").matches,
+    () => typeof window !== "undefined" && window.matchMedia("(min-width: 1024px)").matches,
   );
 
   useEffect(() => {
+    if (!ready || !dates.includes(date)) return undefined;
     let cancelled = false;
     const wait = playing ? 800 : 0;
     const handle = setTimeout(() => {
@@ -55,7 +58,7 @@ export default function MapPage() {
       cancelled = true;
       clearTimeout(handle);
     };
-  }, [date, horizon, playing]);
+  }, [date, dates, horizon, playing, ready]);
 
   useEffect(() => {
     if (!showFires) {
@@ -84,18 +87,22 @@ export default function MapPage() {
       district: {
         district_id: feature.properties.district_id,
         name: feature.properties.name,
+        mean: feature.properties[`mean_h${horizon}`],
+        max: feature.properties[`max_h${horizon}`],
+        n_forest: feature.properties.n_forest_cells,
+        class_name: feature.properties.risk_class_name,
       },
     });
   }, [date, horizon]);
 
   return (
-    <div className="absolute inset-0 pt-14">
+    <div className="absolute inset-0 pt-[var(--app-header)]">
       <NepalMap
         onClick={(ll) =>
           setExplain({ lat: ll.lat, lon: ll.lng, date, horizon, district: null })
         }
       >
-        {showRisk && !geoError && (
+        {showRisk && ready && dates.includes(date) && !geoError && (
           <RiskTileLayer date={date} horizon={horizon} opacity={opacity} />
         )}
         {showDistricts && geojson && (
@@ -108,21 +115,25 @@ export default function MapPage() {
         {showFires && <FirePointsLayer features={fires} />}
       </NepalMap>
 
-      <div className="absolute top-[4.75rem] left-2 md:left-4 z-900 flex flex-col gap-2 w-[calc(100%-4.5rem)] md:w-72">
+      <div
+        className={`absolute top-2 left-2 lg:top-4 lg:left-4 z-900 flex flex-col gap-2 w-[min(20rem,calc(100%-4.5rem))] lg:w-72 ${
+          explain ? "hidden lg:flex" : ""
+        }`}
+      >
         <StatsStrip geojson={geojson} />
         <Card className="p-3 md:p-4">
           <button
             type="button"
-            className="md:hidden flex items-center justify-between w-full min-h-11 label-ui text-ink"
+            className="lg:hidden flex items-center justify-between w-full min-h-11 label-ui text-ink"
             onClick={() => setLayersOpen((v) => !v)}
           >
             <span className="inline-flex items-center gap-2">
-              <Layers size={14} /> Layers
+              <Layers size={14} /> {t("map.layers")}
             </span>
-            <span>{layersOpen ? "Hide" : "Show"}</span>
+            <span>{layersOpen ? t("map.hide") : t("map.show")}</span>
           </button>
-          <div className={`${layersOpen ? "block" : "hidden"} md:block mt-2 md:mt-0`}>
-            <p className="hidden md:block text-xs text-muted mb-3 leading-relaxed">
+          <div className={`${layersOpen ? "block" : "hidden"} lg:block mt-2 lg:mt-0`}>
+            <p className="hidden lg:block text-xs text-muted mb-3 leading-relaxed">
               Yellow is quieter. Purple is the most dangerous forest for the
               chosen day.
             </p>
@@ -135,12 +146,12 @@ export default function MapPage() {
                   onChange={(e) => setShowRisk(e.target.checked)}
                   className="accent-[var(--accent)] size-4"
                 />
-                Danger colors
+                {t("map.dangerColors")}
               </label>
               {showRisk && (
                 <div className="pl-6">
                   <p className="text-xs text-muted mb-1">
-                    Color strength {Math.round(opacity * 100)}%
+                    {t("map.colorStrength", { pct: Math.round(opacity * 100) })}
                   </p>
                   <input
                     type="range"
@@ -160,7 +171,7 @@ export default function MapPage() {
                   onChange={(e) => setShowDistricts(e.target.checked)}
                   className="accent-[var(--accent)] size-4"
                 />
-                District borders
+                {t("map.districtBorders")}
               </label>
               <label className="flex items-center gap-2 min-h-11 text-sm text-ink cursor-pointer">
                 <input
@@ -170,25 +181,34 @@ export default function MapPage() {
                   className="accent-[var(--accent)] size-4"
                 />
                 <FlameGlyph size={13} />
-                Recent fires
+                {t("map.recentFires")}
               </label>
             </div>
-            <p className="text-xs text-muted mt-3 leading-relaxed hidden md:block">
+            <p className="text-xs text-muted mt-3 leading-relaxed hidden lg:block">
               Tap a district to see why it is risky, then open its page.
             </p>
           </div>
         </Card>
       </div>
 
-      <MapLegend />
+      <div className={explain ? "hidden lg:block" : ""}>
+        <MapLegend />
+      </div>
 
       {geoError && (
         <Card className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-900 max-w-sm mx-4">
-          <p className="label-ui text-muted mb-2">No map for this day</p>
+          <p className="label-ui text-muted mb-2">{t("map.noMap")}</p>
           <p className="text-sm leading-relaxed">
-            Forecasts cover January–May for years that were written to disk
-            (right now 2024 and 2025). 2026 is in the training data — run
-            `python scripts/forecast.py --backfill 2026` to put it on this map.
+            {t("map.noMapDesc")}
+          </p>
+        </Card>
+      )}
+
+      {(!ready || !dates.includes(date)) && !geoError && (
+        <Card className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-900 max-w-sm mx-4">
+          <p className="label-ui text-muted mb-2">{t("map.loading")}</p>
+          <p className="text-sm leading-relaxed">
+            {t("map.loadingDesc")}
           </p>
         </Card>
       )}
@@ -197,22 +217,21 @@ export default function MapPage() {
         <ExplainDrawer
           lat={explain.lat}
           lon={explain.lon}
-          date={explain.date ?? date}
-          horizon={explain.horizon ?? horizon}
-          query={query}
           district={explain.district}
           onClose={() => setExplain(null)}
         />
       )}
 
-      <DateScrubber
-        date={date}
-        dates={dates}
-        years={years}
-        onDate={setDate}
-        playing={playing}
-        onPlaying={setPlaying}
-      />
+      <div className={explain ? "hidden lg:block" : ""}>
+        <DateScrubber
+          date={date}
+          dates={dates}
+          years={years}
+          onDate={setDate}
+          playing={playing}
+          onPlaying={setPlaying}
+        />
+      </div>
     </div>
   );
 }

@@ -4,7 +4,6 @@ import { getActiveFires } from "../api/client";
 import DateScrubber from "../components/map/DateScrubber";
 import FirePointsLayer from "../components/map/FirePointsLayer";
 import HorizonToggle from "../components/map/HorizonToggle";
-import NepalBorderLayer from "../components/map/NepalBorderLayer";
 import NepalMap from "../components/map/NepalMap";
 import RiskTileLayer from "../components/map/RiskTileLayer";
 import Card from "../components/ui/Card";
@@ -13,7 +12,7 @@ import { prettyDate } from "../lib/plain";
 import { useForecast } from "../state/ForecastContext";
 
 export default function FiresPage() {
-  const { date, horizon, setDate, setHorizon, dates, years } = useForecast();
+  const { date, horizon, setDate, setHorizon, dates, years, ready } = useForecast();
   const [lookback, setLookback] = useState(2);
   const [showRisk, setShowRisk] = useState(true);
   const [playing, setPlaying] = useState(false);
@@ -45,14 +44,15 @@ export default function FiresPage() {
   const live = date === today && features.length > 0;
 
   return (
-    <div className="absolute inset-0 pt-14">
+    <div className="absolute inset-0 pt-[var(--app-header)]">
       <NepalMap>
-        {showRisk && <RiskTileLayer date={date} horizon={horizon} opacity={0.4} />}
-        <NepalBorderLayer />
+        {showRisk && ready && dates.includes(date) && (
+          <RiskTileLayer date={date} horizon={horizon} opacity={0.4} />
+        )}
         <FirePointsLayer features={features} live={live} />
       </NepalMap>
 
-      <Card className="absolute top-[4.75rem] left-2 md:left-4 z-900 w-[calc(100%-1rem)] md:w-72 p-3 md:p-4 panel-enter">
+      <Card className="absolute top-2 left-2 lg:top-4 lg:left-4 z-900 w-[min(20rem,calc(100%-4.5rem))] lg:w-72 p-3 md:p-4 panel-enter">
         <p className="label-ui text-muted">Satellite fire detections</p>
         <p className="font-display font-extrabold text-4xl tabular-nums mt-1">
           {loading ? "—" : features.length}

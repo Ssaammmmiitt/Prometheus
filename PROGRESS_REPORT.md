@@ -7,9 +7,10 @@ from a committed artefact under `runs/` or `data/`, not from an estimate.
 |---|---|
 | Project | Prometheus — daily wildfire risk forecasting for Nepal |
 | Branch | `v2` |
-| Last updated | 2026-08-11 |
-| Status | **Days 1–8 complete.** Next: Day 9 (LightGBM) |
-| Tests | **49 passing**, ruff clean |
+| Last updated | 2026-08-18 |
+| Status | **Days 1–15 complete.** Website: 2026 maps, what-if `/predict`, statistical cell panel |
+| Tests | **100 passing**, ruff + eslint clean |
+| Primary model | **LightGBM** bundle `v1` (h1 + h7, isotonic calibrated) — beats U-Net 10/10 |
 
 ---
 
@@ -30,8 +31,13 @@ that distinction.
 | Feature cube | `data/cube/features_daily.zarr` | 5.69 GB | 1664 × 465 × 912 × 17 vars |
 | Training table | `data/cube/train_table.parquet` | 149 MB | 2,065,833 × 53 |
 | Per-fold norm stats | `data/models/norm_stats_v1.json` | 76 KB | 11 folds |
-| Raw downloads | `data/raw/` | 4.7 GB | 377 GEE tiles + FIRMS |
-| Static layers | `data/static/` | 2.4 MB | 6 aligned rasters |
+| Frozen model bundle | `data/models/bundles/v1/` | ~8 MB | h1+h7 boosters, calibrators, card |
+| LOYO CV tables | `runs/cv/` | — | 10 folds, ablations, regions, SHAP |
+| U-Net comparison | `runs/unet/per_fold_h1.csv` | — | 10 folds, LGBM wins all |
+| Operational forecasts | `runs/forecasts/` | ~454 days | risk h1/h7 COGs + districts GeoJSON (2024–2026) |
+| Verification | `runs/forecasts/verification.csv` | 451 days | next-day fire vs h1 forecast (mean PR-AUC 0.0808) |
+| Raw downloads | `data/raw/` | 4.7 GB+ | 377 GEE tiles + FIRMS + OSM |
+| Static layers | `data/static/` | + districts_77 | mask, terrain, roads, 77 districts |
 
 **Canonical grid (never varies):** 465 × 912, EPSG:4326, pixel 0.008983152841195215°,
 origin (80.01294235652578, 30.515770201540146), **168,064** valid Nepal cells.
@@ -47,24 +53,22 @@ would add ~120 trivially-negative days per year and teach the model nothing.
 
 ```
 configs/base.yaml          single source of truth (years, grid, features, CV)
+Makefile                   make forecast / backfill / verify / api / ui
 src/prometheus/
   config.py  grid.py       constants + canonical grid
   data/firms.py            FIRMS download → clean → rasterise
-  features/
-    warp.py                regrid anything onto the canonical grid
-    weather.py             ERA5 9 km → 1 km, lapse-corrected
-    vegetation.py          MODIS composites → daily
-    forest.py              static layers + burnable mask
-    cube.py                assemble features_daily.zarr
-    derived.py             dryness, rolling windows, anomalies, fire history
-    table.py               sampling + training table + norm stats
+  features/                warp, weather, vegetation, forest, cube, derived, table
   eval/                    metrics, baselines, leave-one-year-out CV
-  models/                  (Day 9)
-gee/                       four Earth Engine export scripts
-scripts/                   eight CLIs, one per build step
-tests/                     49 tests
-docs/                      DAY4_5_MANUAL.md, EXTEND_TO_2026.md, report draft
-data/  runs/               gitignored
+  models/                  LightGBM, calibration, bundle, RiskPredictor
+  cnn/                     optional U-Net (research only — lost to LightGBM)
+  infer/                   COGs, districts, forecast orchestration, verification
+  api/                     FastAPI (tiles, districts, fires, verification, explain, what-if)
+gee/                       Earth Engine export scripts
+scripts/                   build + train + forecast CLIs
+frontend/                  React + Vite + Leaflet (Arcade Night, light/dark)
+tests/                     100 tests
+docs/                      manuals + report draft
+data/  runs/               gitignored (cube, bundles, forecasts, cv tables)
 ```
 
 ---
@@ -649,6 +653,64 @@ python -u scripts/train_unet.py --batch-size 16                  # 10 folds
 
 ---
 
+## Day 13 — Inference pipeline · Done
+
+Operational path, aligned with the Day 12 verdict: **only the frozen LightGBM
+bundle is in production** (calibrated h1 and h7). The U-Net is kept as a
+research comparison under `runs/unet/`, not served.
+
+```bash
+make forecast DATE=2025-04-12
+# equivalent: python scripts/forecast.py --date 2025-04-12
+```
+
+Produces, under `runs/forecasts/`:
+
+| Artefact | Role |
+|---|---|
+| `risk_{date}_h1.tif` | Calibrated next-day probability, COG-like GeoTIFF |
+| `risk_{date}_h7.tif` | Same for the 7-day window |
+| `districts_{date}.geojson` | 77 districts: mean/max h1+h7, risk class of district mean |
+| `verification.csv` | Forecast-vs-next-day detections (append on re-run) |
+
+COGs are tiled Deflate float32 with internal overviews `[2,4,8,16]`, nodata
+`-1` (so probability 0 stays valid), aligned to the canonical 465 × 912 grid —
+opens in QGIS and is ready for Day 14 TiTiler. Districts come from OSM
+admin_level 6 (exactly 77), rasterised once to a district-id grid for fast
+zonal stats; geometries are lightly simplified for file size.
+
+**Idempotent and backfillable.** Re-running a date skips if all three outputs
+exist (unless `--force`). Backfill of the 2024–2025 seasons wrote **303 daily
+packages** (~0.8 s/day once a season is warm; ~4.5 min total). Predictors are
+sourced from the **local feature cube** (the same ERA5/MODIS GEE exports the
+model trained on). There is no separate live-GEE hop for historical dates; a
+true “today” re-export can be bolted on later without changing the write path.
+
+**Verification job.** An h1 forecast for day *D* is scored against FIRMS on day
+*D+1* on the forest mask (matching `label_h1`). Over the backfilled range:
+
+| Check | Value |
+|---|---|
+| Days scored | 301 (May 31 has no next-day label) |
+| Days with ≥1 fire | 296 |
+| Mean daily PR-AUC | **0.0852** |
+| Mean top-10% capture | **0.546** |
+| Mean Brier | 0.0103 |
+
+Daily PR-AUC is noisier and lower than season-level LOYO (0.15) because each
+row is a single day with a tiny base rate — the table is for the verification
+page, not a replacement for the Day 10 result. Example acceptance date
+**2025-04-12**: COGs written in ~9 s first run, then skip; next-day PR-AUC
+0.024 on a quiet day (121 fires, base rate 0.096 %).
+
+```bash
+make forecast DATE=2025-04-12
+make backfill-forecasts          # Jan–May 2024+2025
+make verify-forecasts            # rewrite verification.csv
+```
+
+---
+
 ## Standing rules
 
 1. **Alignment.** 465 × 912, EPSG:4326, zero fire pixels outside the Nepal mask.
@@ -676,6 +738,9 @@ python -u scripts/train_unet.py --batch-size 16                  # 10 folds
 | PR-AUC varies with each season's base rate | Always read a fold next to its own climatology column |
 | Raw booster scores are inflated ~30× by the 1:20 downsample | Only the calibrated output is a probability |
 | First `predict` of a season costs ~12 s and ~3.4 GB | Season features are cached; later dates are sub-second |
+| Live GEE re-export is not wired for "today" | Day 13 serves historical/backfill dates from the cube |
+| Daily verification PR-AUC is noisy vs season-level LOYO | Show both; never replace the Day 10 table with daily rows |
+| OSM district names mix Devanagari and Latin | Stable `district_id` 1..77 is the primary key |
 
 ---
 
@@ -684,32 +749,76 @@ python -u scripts/train_unet.py --batch-size 16                  # 10 folds
 ```bash
 source .prometheus-venv/bin/activate
 
-python scripts/build_fire_labels.py        # labels     (~78 min first run)
-python scripts/audit_gee_raw.py            # verify GEE downloads
-python scripts/build_local_static.py --osm-dir data/raw/osm/nepal-free
-python scripts/build_feature_cube.py       # feature cube (~4 min)
-python scripts/build_train_table.py        # training table (~40 s)
-python scripts/run_baselines.py            # baseline bar
+python scripts/build_fire_labels.py
+python scripts/build_feature_cube.py
+python scripts/build_train_table.py
+python scripts/run_baselines.py
+python scripts/train_lightgbm.py --year 2021
+python scripts/run_cv.py
+python scripts/build_model_bundle.py
+python scripts/plot_calibration.py
+# optional CNN (needs MPS outside sandbox):
+#   python -u scripts/train_unet.py --batch-size 16
 
-python scripts/plot_cube_check.py --year 2021
-python scripts/plot_feature_diagnostics.py
+make forecast DATE=2026-04-12
+make backfill-forecasts
+make verify-forecasts
+make api
+make ui                                 # http://localhost:5173
 
-python -m pytest tests/ -q                 # 49 tests
+python -m pytest tests/ -q                 # 100 tests
 ruff check src scripts tests
 ```
 
 ---
 
-## Next — Day 9: LightGBM
+## Day 14 — Backend (FastAPI) · Done
 
-Train with `scale_pos_weight` and early stopping; light search over
-`num_leaves`, `min_data_in_leaf`, `learning_rate`, `feature_fraction`.
+FastAPI backend serves Day 13 artefacts (COGs + districts GeoJSON + verification
+CSV) over `/api/`, including risk tiles, district summaries, district timeseries,
+active fires, verification, explainability, and what-if scoring.
+`GET /api/explain` returns a calibrated chance, country/district comparison,
+condition snapshot, and grouped SHAP shares — not raw slogan lines.
+`POST /api/whatif` scores a forest cell with weather sliders (shared
+`RiskPredictor` with explain). PostGIS stays skipped.
 
-**Done when:** a single fold trains in under 2 minutes and beats climatology
-PR-AUC on the full-grid evaluation.
+---
 
-| Then | |
+## Day 15 — Frontend · Done
+
+Replaced the mock patch-grid dashboard with live views over the Day 14 API,
+styled from `frontend/Design.md` (Arcade Night) with a switchable light invert.
+
+| Route | View |
 |---|---|
-| Day 10 | Full LOYO, SHAP, family ablations, per-region breakdown |
-| Day 11 | Isotonic calibration, 7-day horizon, 5 risk classes, model card |
-| Day 12 | U-Net LOYO on local MPS — LightGBM wins 10/10 folds |
+| `/` | National risk map — COG tiles, 77 districts, date scrubber + play, **Tomorrow / Next 7 days** (left card **and** cell panel, same `?horizon=`), statistical explain drawer |
+| `/predict` | What-if weather sandbox — click a forest cell, move sliders |
+| `/district/:id` | District mean/max + season timeseries |
+| `/fires` | FIRMS points, lookback 1–7 days, optional risk underlay |
+| `/verify` | Daily PR-AUC vs next-day fire, base rate always shown |
+
+The map **opens on 12 Apr 2026**. Year tabs are newest-first (2026, 2025, 2024).
+Clicking a forest cell shows probability %, a comparison bar chart, conditions
+with units, and grouped driver shares. Clicking a district outline uses the
+same panel; **See all of …** opens `/district/:id`.
+
+Live catalogue: **454** forecast dates (Jan–May 2024–2026), 77 districts.
+Verification CSV: **451** days, mean daily PR-AUC **0.0808**, top-10% capture
+**0.557**. Out-of-bounds tiles return a transparent PNG; empty fire windows
+return an empty FeatureCollection. Theme persists in `localStorage` (default
+dark).
+
+```bash
+make api
+make ui
+# http://localhost:5173
+```
+
+| Done | |
+|---|---|
+| Days 1–8 | Labels, eval, cube, train table |
+| Day 9–11 | LightGBM, LOYO, SHAP, ablations, calibration, bundle `v1` |
+| Day 12 | U-Net 10-fold — LightGBM wins all |
+| Day 13 | Forecast COGs, districts, backfill, verification |
+| Day 14 | Backend routes: tiles, districts, fires, verification, explain, what-if |
+| Day 15 | React map app, five views, light/dark, live API |

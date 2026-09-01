@@ -142,9 +142,12 @@ def burned_cell_capture() -> float | None:
     """
     import xarray as xr
 
+    from prometheus.features.cube import strip_finder_junk
+
     path = load_settings().paths.resolve("cube") / "fire_daily.zarr"
     if not path.exists():
         return None
+    strip_finder_junk(path)
     ds = xr.open_zarr(path, consolidated=False)
     burned = ds["fire"].values.sum(axis=0) > 0
     if not burned.any():

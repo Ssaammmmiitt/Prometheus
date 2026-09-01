@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 import numpy as np
+from scipy.ndimage import uniform_filter
 from sklearn.metrics import (
     average_precision_score,
     brier_score_loss,
@@ -91,13 +92,17 @@ def reliability_curve(
     y_true: np.ndarray,
     y_score: np.ndarray,
     n_bins: int = 15,
+    edges: np.ndarray | None = None,
 ) -> dict[str, np.ndarray]:
     """
     Reliability diagram data: per-bin predicted mean, observed frequency, counts.
     """
     y, s = _to_1d(y_true, y_score)
     s = np.clip(s, 0.0, 1.0)
-    edges = np.linspace(0.0, 1.0, n_bins + 1)
+    if edges is None:
+        edges = np.linspace(0.0, 1.0, n_bins + 1)
+    else:
+        n_bins = len(edges) - 1
     bin_ids = np.digitize(s, edges[1:-1], right=True)
     pred_mean = np.full(n_bins, np.nan)
     obs_freq = np.full(n_bins, np.nan)
@@ -115,6 +120,11 @@ def reliability_curve(
         "obs_freq": obs_freq,
         "counts": counts,
     }
+
+def reliability_by_class(y_true: np.ndarray, y_score: np.ndarray) -> dict[str, np.ndarray]:
+    """Reliability broken down by Prometheus risk classes: 0-5%, 5-10%, 10-20%, 20-40%, 40-100%"""
+    edges = np.array([0.0, 0.05, 0.10, 0.20, 0.40, 1.0])
+    return reliability_curve(y_true, y_score, edges=edges)
 
 
 def expected_calibration_error(
@@ -157,3 +167,56 @@ def summarize(
             y_true, y_score, y_clim, metric="pr_auc"
         )
     return out
+
+def fss(y_true: np.ndarray, y_score: np.ndarray, mask: np.ndarray, threshold: float, window_size: int = 5) -> float:
+    """Fractions Skill Score (FSS) over a 2D spatial grid."""
+    if y_true.shape != y_score.shape:
+        raise ValueError("Shape mismatch between true and predicted arrays.")
+        
+    # Apply threshold
+    y = (y_true >= threshold).astype(float)
+    s = (y_score >= threshold).astype(float)
+    
+    # Calculate fractional coverage
+    y_frac = uniform_filter(y, size=window_size, mode='constant', cval=0.0)
+    s_frac = uniform_filter(s, size=window_size, mode='constant', cval=0.0)
+    
+    # Only evaluate inside mask
+    y_frac = y_frac[mask]
+    s_frac = s_frac[mask]
+    
+    if y_frac.size == 0:
+        return float("nan")
+        
+    mse = np.nanmean((y_frac - s_frac)**2)
+    mse_ref = np.nanmean(y_frac**2 + s_frac**2)
+    
+    if mse_ref == 0:
+        return float("nan")
+        
+    return float(1.0 - (mse / mse_ref))
+
+def rev(y_true: np.ndarray, y_score: np.ndarray, c_ratio: float, threshold: float = None) -> float:
+    """Relative Economic Value (REV)."""
+    if threshold is None:
+        threshold = c_ratio
+        
+    hits = np.sum((y_score >= threshold) & (y_true > 0))
+    false_alarms = np.sum((y_score >= threshold) & (y_true == 0))
+    misses = np.sum((y_score < threshold) & (y_true > 0))
+    correct_negatives = np.sum((y_score < threshold) & (y_true == 0))
+    
+    N = hits + false_alarms + misses + correct_negatives
+    if N == 0:
+        return float("nan")
+        
+    base_rate = np.sum(y_true > 0) / N
+    
+    expense_clim = min(c_ratio, base_rate)
+    expense_perf = base_rate * c_ratio
+    expense_fcst = (hits + false_alarms) / N * c_ratio + (misses / N)
+    
+    if expense_clim - expense_perf == 0:
+        return float("nan")
+        
+    return float((expense_clim - expense_fcst) / (expense_clim - expense_perf))

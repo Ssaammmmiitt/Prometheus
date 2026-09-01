@@ -2,8 +2,8 @@
 """Day 13: produce risk COGs + district GeoJSON for one date or a season range.
 
   python scripts/forecast.py --date 2025-04-12
-  python scripts/forecast.py --backfill 2024 2025
-  python scripts/forecast.py --verify 2024-01-01 2025-05-30
+  python scripts/forecast.py --backfill 2024 2025 2026
+  python scripts/forecast.py --verify 2024-01-01 2026-05-30
 """
 
 from __future__ import annotations
@@ -49,7 +49,7 @@ def main(argv: list[str] | None = None) -> int:
             print(f"  {key}: {path}")
 
     if args.backfill is not None:
-        years = args.backfill or [2024, 2025]
+        years = args.backfill or [2024, 2025, 2026]
         print(f"backfill years {years} → {pipe.out_dir}")
         results = pipe.backfill(years, force=args.force)
         written = sum(1 for r in results if not r.skipped)

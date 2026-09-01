@@ -128,3 +128,38 @@ input[type="range"].range-compact {
     display: none;
   }
 }
+
+@media print {
+  body {
+    background: white;
+    color: black;
+    height: auto;
+    overflow: visible;
+  }
+  
+  #root, .absolute.inset-0 {
+    position: static;
+    height: auto;
+    overflow: visible;
+  }
+
+  header, nav, .leaflet-container {
+    display: none !important;
+  }
+  
+  .print\:hidden {
+    display: none !important;
+  }
+  
+  .print\:w-full {
+    width: 100% !important;
+  }
+  
+  .print\:border-none {
+    border: none !important;
+  }
+  
+  .print\:overflow-visible {
+    overflow: visible !important;
+  }
+}

@@ -110,6 +110,17 @@ def vapour_pressure_deficit(t2m_c: np.ndarray, rh_pct: np.ndarray) -> np.ndarray
     return np.maximum(es * (1.0 - rh_pct / 100.0), 0.0)
 
 
+def dewpoint_from_rh(t2m_c: np.ndarray, rh_pct: np.ndarray) -> np.ndarray:
+    """Invert Magnus–Tetens: dewpoint (°C) from air temperature and RH."""
+    t = np.asarray(t2m_c, dtype=np.float64)
+    rh = np.clip(np.asarray(rh_pct, dtype=np.float64), 1.0, 100.0)
+    vapour = saturation_vapour_pressure(t) * (rh / 100.0)
+    vapour = np.maximum(vapour, 1e-6)
+    ln = np.log(vapour / 6.112)
+    d2m = 243.5 * ln / (17.67 - ln)
+    return np.minimum(d2m, t).astype(np.float32)
+
+
 def downscale_month(year: int, month: int) -> tuple[list[date], dict[str, np.ndarray]]:
     """
     ERA5 month at ~9 km → daily 1 km fields with derived humidity and wind.
@@ -178,6 +189,7 @@ __all__ = [
     "month_path",
     "parse_band",
     "read_month",
+    "dewpoint_from_rh",
     "relative_humidity",
     "saturation_vapour_pressure",
     "vapour_pressure_deficit",

@@ -8,7 +8,7 @@ export default function ZoomBar() {
   const btn =
     "min-h-11 min-w-11 flex items-center justify-center text-ink hover:bg-[var(--accent-12)] transition-colors duration-200 border-b border-[var(--hairline)] last:border-b-0";
   return (
-    <div className="absolute top-2 right-2 md:top-4 md:right-4 z-900 flex flex-col bg-lift border border-[var(--hairline)]">
+    <div className="absolute top-2 right-2 md:top-4 md:right-4 z-800 flex flex-col bg-lift border border-[var(--hairline)]">
       <button type="button" className={btn} title="Zoom in" onClick={() => map.zoomIn()}>
         <Plus size={16} />
       </button>

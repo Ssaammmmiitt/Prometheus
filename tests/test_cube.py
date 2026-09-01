@@ -15,9 +15,20 @@ from prometheus.features.cube import (
     dynamic_variables,
     open_cube,
     season_dates,
+    strip_finder_junk,
 )
 
 MAX_NAN_FRACTION = 0.05
+
+
+def test_strip_finder_junk(tmp_path):
+    store = tmp_path / "toy.zarr"
+    store.mkdir()
+    (store / "zarr.json").write_text("{}")
+    (store / ".DS_Store").write_bytes(b"finder")
+    strip_finder_junk(store)
+    assert not (store / ".DS_Store").exists()
+    assert (store / "zarr.json").exists()
 
 
 @pytest.fixture(scope="module")

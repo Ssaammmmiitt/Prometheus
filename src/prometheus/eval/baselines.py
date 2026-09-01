@@ -19,9 +19,12 @@ def fire_cube_path() -> Path:
 
 def load_fire_cube() -> tuple[np.ndarray, pd.DatetimeIndex]:
     """Load uint8 fire cube (T,H,W) and times."""
+    from prometheus.features.cube import strip_finder_junk
+
     path = fire_cube_path()
     if not path.exists():
         raise FileNotFoundError(f"Missing fire cube at {path}. Run Day-2 first.")
+    strip_finder_junk(path)
     ds = xr.open_zarr(path)
     fire = np.asarray(ds["fire"].values, dtype=np.uint8)
     times = pd.DatetimeIndex(pd.to_datetime(ds["time"].values)).normalize()

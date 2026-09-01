@@ -1,4 +1,5 @@
 import { CLASS_NAMES } from "../../lib/riskColors";
+import AnimatedNumber from "../ui/AnimatedNumber";
 import Card from "../ui/Card";
 
 export default function StatsStrip({ geojson }) {
@@ -20,7 +21,7 @@ export default function StatsStrip({ geojson }) {
         ].map(([k, label]) => (
           <div key={k}>
             <p className="font-display font-extrabold text-2xl md:text-3xl leading-none tabular-nums">
-              {counts[k]}
+              <AnimatedNumber value={counts[k]} />
             </p>
             <p className="label-ui text-muted mt-1">{label}</p>
           </div>

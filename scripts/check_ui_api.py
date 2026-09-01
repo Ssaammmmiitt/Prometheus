@@ -74,6 +74,17 @@ def main() -> int:
     )
     checks.append(("explain not 500", off.status_code in (200, 400)))
 
+    schema = client.get("/api/whatif/schema")
+    checks.append(("whatif schema", schema.status_code == 200 and "sliders" in schema.json()))
+
+    wi = client.post(
+        "/api/whatif",
+        json={"lat": lat, "lon": lon, "date": day, "horizon": 1, "overrides": {}},
+    )
+    checks.append(
+        ("whatif forest", wi.status_code == 200 and "probability" in wi.json().get("scenario", {}))
+    )
+
     failed = [(n, ok) for n, ok in checks if not ok]
     for name, ok in checks:
         print(f"  {'ok' if ok else 'FAIL':<4} {name}")

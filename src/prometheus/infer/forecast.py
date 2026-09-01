@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta
 from pathlib import Path
+import numpy as np
 
 from prometheus.config import load_settings
 from prometheus.infer import districts as dist
@@ -92,7 +93,8 @@ class ForecastPipeline:
         paths: dict[str, str] = {}
         for h in self.horizons:
             risk = self.predictor.predict(day, horizon=h)
-            path = io_cog.write_risk_cog(risk, io_cog.risk_path(day, h, self.out_dir))
+            tags = {"PROMETHEUS_BUNDLE_HASH": getattr(self.predictor.bundle, "bundle_hash", "")}
+            path = io_cog.write_risk_cog(risk, io_cog.risk_path(day, h, self.out_dir), tags=tags)
             risk_maps[h] = risk
             paths[f"h{h}"] = str(path)
 
@@ -105,6 +107,39 @@ class ForecastPipeline:
         gdf["date"] = day.isoformat()
         dpath = dist.write_districts(gdf, io_cog.districts_path(day, self.out_dir))
         paths["districts"] = str(dpath)
+
+        # Ingest into SQLite database
+        from prometheus.db import get_connection, init_db
+        init_db(self.out_dir)
+        conn = get_connection(self.out_dir)
+        try:
+            # 1. Forecast Metadata
+            bundle_hash = getattr(self.predictor.bundle, "bundle_hash", "")
+            features_hash = "" # Future: implement feature hashing
+            conn.execute(
+                "INSERT OR IGNORE INTO forecasts (forecast_date, bundle_hash, features_hash) VALUES (?, ?, ?)",
+                (day.isoformat(), bundle_hash, features_hash)
+            )
+
+            # 2. District Stats
+            for _, row in gdf.iterrows():
+                did = str(row["district_id"])
+                for h in self.horizons:
+                    mean_h = row.get(f"mean_h{h}")
+                    max_h = row.get(f"max_h{h}")
+                    if mean_h is not None and not np.isnan(mean_h):
+                        conn.execute(
+                            """
+                            INSERT OR REPLACE INTO district_stats (district_id, forecast_date, horizon, mean_prob, max_prob)
+                            VALUES (?, ?, ?, ?, ?)
+                            """,
+                            (did, day.isoformat(), h, float(mean_h), float(max_h) if max_h is not None and not np.isnan(max_h) else None)
+                        )
+            conn.commit()
+        except Exception as e:
+            print(f"Error writing to db: {e}")
+        finally:
+            conn.close()
 
         return ForecastResult(
             day=day,

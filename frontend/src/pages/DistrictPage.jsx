@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
+import { useTranslation } from "react-i18next";
+import { Printer } from "lucide-react";
 
 import { getDistricts, getDistrictTimeseries } from "../api/client";
 import DistrictTimeseries from "../components/charts/DistrictTimeseries";
@@ -21,6 +23,7 @@ function pct(v) {
 export default function DistrictPage() {
   const { id } = useParams();
   const { date, horizon, setHorizon, query, dates, ready } = useForecast();
+  const { t } = useTranslation();
   const [geojson, setGeojson] = useState(null);
   const [series, setSeries] = useState([]);
   const [error, setError] = useState(null);
@@ -69,8 +72,8 @@ export default function DistrictPage() {
   const max = props[`max_h${horizon}`];
 
   return (
-    <div className="absolute inset-0 pt-14 flex flex-col md:flex-row">
-      <div className="h-[38vh] md:h-auto md:flex-1 relative min-w-0">
+    <div className="absolute inset-0 pt-[var(--app-header)] flex flex-col lg:flex-row min-h-0">
+      <div className="h-[32vh] min-h-[11rem] sm:h-[38vh] lg:h-auto lg:flex-1 relative min-w-0">
         <NepalMap zoom={7}>
           {ready && dates.includes(date) && (
             <RiskTileLayer date={date} horizon={horizon} opacity={0.45} />
@@ -85,12 +88,18 @@ export default function DistrictPage() {
           )}
         </NepalMap>
       </div>
-      <aside className="flex-1 md:flex-none md:w-[min(420px,42vw)] shrink-0 border-t md:border-t-0 md:border-l border-[var(--hairline)] bg-surface overflow-y-auto p-4 md:p-6">
-        <Link to={`/?${query}`}>
-          <Button variant="ghost" className="px-0">
-            ← Back to Nepal
+      <aside className="flex-1 min-h-0 lg:flex-none lg:w-[min(420px,42vw)] shrink-0 border-t lg:border-t-0 lg:border-l border-[var(--hairline)] bg-surface overflow-y-auto overscroll-pane p-4 md:p-6 pb-[max(1rem,var(--app-bottom))] print:w-full print:border-none print:overflow-visible">
+        <div className="flex justify-between items-center print:hidden">
+          <Link to={`/?${query}`}>
+            <Button variant="ghost" className="px-0">
+              ← Back to Nepal
+            </Button>
+          </Link>
+          <Button variant="outline" className="text-xs py-1 h-8 gap-2" onClick={() => window.print()}>
+            <Printer size={14} /> Download Report
           </Button>
-        </Link>
+        </div>
+        
         <p className="label-ui text-muted mt-4">One district</p>
         <h1 className="font-display font-extrabold text-3xl md:text-4xl leading-none mt-1">
           {props.name ?? "—"}

@@ -12,8 +12,8 @@ export const NEPAL_LATLNG_BOUNDS = [
   [NEPAL_BOUNDS.north, NEPAL_BOUNDS.east],
 ];
 
-export const DEFAULT_DATE = "2025-04-12";
-export const FORECAST_YEARS = ["2024", "2025", "2026"];
+export const DEFAULT_DATE = "2026-04-12";
+export const FORECAST_YEARS = ["2026", "2025", "2024"];
 export const SEASON_START = "01-01";
 export const SEASON_END = "05-31";
 export const LOYO_PR_AUC = 0.1548;

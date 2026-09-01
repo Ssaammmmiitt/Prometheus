@@ -41,6 +41,17 @@ def cube_path() -> Path:
     return load_settings().paths.resolve("cube") / "features_daily.zarr"
 
 
+def strip_finder_junk(root: Path) -> None:
+    """Drop macOS/Windows folder files that Zarr v3 warns are not members."""
+    junk = root / ".DS_Store"
+    if junk.is_file():
+        junk.unlink()
+    extra = root / "desktop.ini"
+    if extra.is_file():
+        extra.unlink()
+
+
+
 def dynamic_variables() -> list[str]:
     return list(weather.WEATHER_VARS) + ["ndvi", "evi", "lst_day", "lst_night", "lst_diff"]
 
@@ -253,7 +264,9 @@ def _dir_size(path: Path) -> int:
 def open_cube(path: Path | None = None):
     import xarray as xr
 
-    return xr.open_zarr(path or cube_path(), consolidated=False)
+    path = path or cube_path()
+    strip_finder_junk(path)
+    return xr.open_zarr(path, consolidated=False)
 
 
 __all__ = [
@@ -264,4 +277,5 @@ __all__ = [
     "dynamic_variables",
     "open_cube",
     "season_dates",
+    "strip_finder_junk",
 ]

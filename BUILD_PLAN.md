@@ -2,6 +2,8 @@
 
 Revised for: local M4 development, free-tier only, 3-week timeline, Nepal pre-monsoon fire season.
 
+**Status (2026-08-18):** this document is the original design. Training, maps, and the website now cover **2016–2026**. The live app has five views (including What if), a statistical cell panel, and a shared Tomorrow / Next 7 days toggle. Follow [README.md](README.md) to run it; [docs/EXTEND_TO_2026.md](docs/EXTEND_TO_2026.md) for the extra year.
+
 ---
 
 # Part 1 — What we are building, in plain words
@@ -368,7 +370,9 @@ uv add fastapi "uvicorn[standard]" titiler.core
 | `GET /api/districts/{id}/timeseries` | risk history |
 | `GET /api/fires/active` | recent FIRMS detections |
 | `GET /api/verification` | forecast-vs-observed accuracy |
-| `GET /api/explain?lat=&lon=&date=` | top SHAP contributions for one cell |
+| `GET /api/explain?lat=&lon=&date=` | calibrated chance, snapshot, grouped SHAP for one cell |
+| `GET /api/whatif/schema` | slider bounds for the what-if page |
+| `POST /api/whatif` | score a forest cell with weather overrides |
 
 **Skip PostGIS for now** — read COGs and GeoJSON straight from disk. A database adds a day of work and buys you nothing at this scale. Note it as future work.
 
@@ -380,7 +384,7 @@ uv add fastapi "uvicorn[standard]" titiler.core
 
 Reuse your existing React + Vite + Tailwind app. Keep **Leaflet** — at 1 km over Nepal it's fine, and swapping to MapLibre isn't worth a day right now.
 
-Four views: national risk map with a date scrubber and 1-day/7-day toggle; district drill-down with a risk time series; historical fire explorer; and a **verification page** showing yesterday's forecast against today's detections. Use a colourblind-safe ramp — yellow→orange→red→purple, not red-green.
+Five views: national risk map with a date scrubber and 1-day/7-day toggle (also on the cell panel); a what-if weather sandbox; district drill-down with a risk time series; historical fire explorer; and a **verification page** showing yesterday's forecast against today's detections. Use a colourblind-safe ramp — yellow→orange→red→purple, not red-green.
 
 **Done when:** the app loads a real forecast from the API and the date scrubber animates.
 
