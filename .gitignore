@@ -27,6 +27,13 @@ data/*
 !data/models/
 data/models/*
 !data/models/bundles/
+!data/raw/
+data/raw/*
+!data/raw/gee/
+data/raw/gee/*
+!data/raw/gee/static/
+data/models/*
+!data/models/bundles/
 runs/
 *.tif
 *.tiff

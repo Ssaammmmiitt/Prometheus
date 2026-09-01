@@ -31,6 +31,7 @@ RUN pip install --no-cache-dir fastapi uvicorn "titiler.core>=0.18.0" && \
 # Copy configs and static data required by the models
 COPY --chown=user configs/ ./configs/
 COPY --chown=user data/static/ ./data/static/
+COPY --chown=user data/raw/gee/static/ ./data/raw/gee/static/
 COPY --chown=user data/models/bundles/ ./data/models/bundles/
 
 # Copy the built frontend
