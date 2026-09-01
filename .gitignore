@@ -19,6 +19,7 @@ build/
 .coverage
 htmlcov/
 .ipynb_checkpoints/
+*.log
 
 # Runtime data (never commit)
 data/
@@ -37,12 +38,24 @@ runs/
 *.onnx
 *.joblib
 
+# Databases
+*.db
+*.sqlite
+*.sqlite3
+
 # Frontend
 frontend/node_modules/
 frontend/dist/
+frontend/.eslintcache
 
 # OS / IDE
 .DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
+.Spotlight-V100
+.Trashes
 .idea/
 .vscode/
 *.swp
