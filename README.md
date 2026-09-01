@@ -216,23 +216,37 @@ cd frontend && npm run lint && npm run build
 
 ---
 
-## Free-Tier Deployment (Hugging Face Spaces)
+## Lightweight Cloud Deployment (Oracle Cloud / VPS / Hugging Face)
 
-This project has been optimized for **zero-infrastructure free-tier deployment**. It uses a local SQLite database for performance and a single Docker container to serve both the FastAPI backend and the React frontend.
+This project has been heavily optimized for **zero-infrastructure free-tier deployment** (like Oracle Cloud Always Free ARM). It uses a local SQLite database for performance and a single Docker container to serve both the FastAPI backend and the React frontend.
 
-1. **Docker**: The included `Dockerfile` performs a multi-stage build. It compiles the React app and then sets up FastAPI to serve it alongside the `/api` routes on port `7860`.
-2. **Persistent Storage**: On Hugging Face Spaces, you can mount persistent storage to `/data`. The app automatically detects `PROMETHEUS_FORECASTS_ROOT=/data/forecasts` to store the `prometheus.db` and maps, so they survive container restarts.
-3. **Reproducibility**: Every model bundle and output map gets tagged with a SHA-256 content hash.
+Crucially, the massive 5.3 GB daily training cube is **no longer required for production**. The application supports a "Micro-Cube" architecture:
+1. **Slice the cube**: Use `scripts/minify_cube.py` to extract only the 2026 season timestamps, resulting in a ~633 MB `features_2026.zarr` cube.
+2. **Backend Fallback**: The backend automatically detects and mounts `features_2026.zarr` instead of the 11-year dataset, instantly reducing disk and RAM usage by 90% while fully preserving the interactive "What-If" sandbox.
 
-To deploy: Create a Docker Space on Hugging Face, enable persistent storage at `/data`, and push the repository.
+### Deployment Instructions
 
-Useful API checks:
+1. **Docker Multi-Stage Build**: The included `Dockerfile` compiles the React app and then sets up FastAPI to serve it alongside the `/api` routes on port `7860`.
+2. **Persistent Storage**: You must mount two directories into the container:
+   - `data/cube`: Contains the lightweight `features_2026.zarr` and static GeoTIFFs.
+   - `runs/`: Contains the generated forecast maps (`runs/forecasts`) and the SQLite database (`prometheus.db`), ensuring they survive container restarts.
 
+Example run command for a VPS:
+```bash
+sudo docker build -t prometheus-app .
+
+sudo docker run -d --name prometheus \
+  -p 80:7860 \
+  -v /path/to/host/data/cube:/home/user/app/data/cube \
+  -v /path/to/host/runs:/home/user/app/runs \
+  --restart unless-stopped \
+  prometheus-app
+```
+
+Useful API checks once deployed:
 ```bash
 curl -s http://127.0.0.1:8000/api/health
 curl -s http://127.0.0.1:8000/api/forecasts | head
-curl -s -o /tmp/t.png -w "%{http_code} %{size_download}\n" \
-  "http://127.0.0.1:8000/api/risk/tiles/7/93/53.png?date=2026-04-12&horizon=1"
 curl -s "http://127.0.0.1:8000/api/whatif/schema" | head
 ```
 
