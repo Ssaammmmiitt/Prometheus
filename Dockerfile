@@ -18,14 +18,11 @@ ENV HOME=/home/user \
 
 WORKDIR $HOME/app
 
-# Install dependencies
-COPY --chown=user requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
-
-# Install the prometheus package
+# Install API and App dependencies
 COPY --chown=user pyproject.toml .
 COPY --chown=user src/ ./src/
-RUN pip install --no-cache-dir -e .
+RUN pip install --no-cache-dir fastapi uvicorn "titiler.core>=0.18.0" && \
+    pip install --no-cache-dir -e .
 
 # Copy configs and static data required by the models
 COPY --chown=user configs/ ./configs/
