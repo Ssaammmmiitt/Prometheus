@@ -14,11 +14,13 @@ RUN apt-get update && apt-get install -y libexpat1 libgomp1 && rm -rf /var/lib/a
 
 # Create user with UID 1000 required by Hugging Face Spaces
 RUN useradd -m -u 1000 user
-USER user
 ENV HOME=/home/user \
     PATH=/home/user/.local/bin:$PATH \
     PROMETHEUS_FORECASTS_ROOT=/data/forecasts
 
+RUN mkdir -p $HOME/app/runs && chown -R user:user $HOME/app
+
+USER user
 WORKDIR $HOME/app
 
 # Install API and App dependencies
