@@ -1,0 +1,10 @@
+{
+  "codes": {
+    "1": "Terai",
+    "2": "Chure",
+    "3": "MiddleMountains",
+    "4": "HighMountains"
+  },
+  "method": "elevation_proxy: Terai<300.0, Chure<1000.0, Mid<3000.0, High\u2265",
+  "note": "0 / nodata outside Nepal mask"
+}

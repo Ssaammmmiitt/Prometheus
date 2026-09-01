@@ -22,7 +22,11 @@ htmlcov/
 *.log
 
 # Runtime data (never commit)
-data/
+data/*
+!data/static/
+!data/models/
+data/models/*
+!data/models/bundles/
 runs/
 *.tif
 *.tiff
