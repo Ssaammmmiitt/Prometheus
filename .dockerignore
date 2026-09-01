@@ -6,8 +6,11 @@ __pycache__/
 
 # Local data (don't upload local runs/data to image)
 runs/
-data/raw/
 data/cube/
+data/raw/*
+!data/raw/gee
+data/raw/gee/*
+!data/raw/gee/static
 
 # Node
 frontend/node_modules/
