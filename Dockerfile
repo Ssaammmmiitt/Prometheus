@@ -20,6 +20,7 @@ WORKDIR $HOME/app
 
 # Install API and App dependencies
 COPY --chown=user pyproject.toml .
+COPY --chown=user BUILD_PLAN.md .
 COPY --chown=user src/ ./src/
 RUN pip install --no-cache-dir fastapi uvicorn "titiler.core>=0.18.0" && \
     pip install --no-cache-dir -e .
