@@ -88,7 +88,7 @@ def create_app() -> FastAPI:
     from fastapi.responses import FileResponse
     from starlette.exceptions import HTTPException as StarletteHTTPException
     
-    frontend_dist = Path(__file__).parent.parent.parent.parent.parent / "frontend" / "dist"
+    frontend_dist = Path(__file__).parent.parent.parent.parent / "frontend" / "dist"
     if frontend_dist.is_dir():
         app.mount("/assets", StaticFiles(directory=frontend_dist / "assets"), name="assets")
         
