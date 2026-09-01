@@ -38,7 +38,10 @@ def season_dates(years: list[int]) -> list[date]:
 
 
 def cube_path() -> Path:
-    return load_settings().paths.resolve("cube") / "features_daily.zarr"
+    p = load_settings().paths.resolve("cube")
+    if (p / "features_2026.zarr").exists():
+        return p / "features_2026.zarr"
+    return p / "features_daily.zarr"
 
 
 def strip_finder_junk(root: Path) -> None:
