@@ -47,7 +47,7 @@ function CompareChart({ rows }) {
   if (!data.length) return null;
   return (
     <div className="h-40 w-full mt-1 mb-1">
-      <ResponsiveContainer width="100%" height="100%">
+      <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
         <BarChart
           data={data}
           layout="vertical"

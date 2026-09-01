@@ -17,7 +17,7 @@ export default function DistrictTimeseries({ rows, selectedDate }) {
 
   return (
     <div className="h-56 w-full">
-      <ResponsiveContainer width="100%" height="100%">
+      <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
         <LineChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
           <XAxis
             dataKey="date"
@@ -72,7 +72,7 @@ export function VerificationSparkline({ rows, selectedDate, onSelect }) {
 
   return (
     <div className="h-40 w-full">
-      <ResponsiveContainer width="100%" height="100%">
+      <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
         <AreaChart
           data={data}
           margin={{ top: 8, right: 8, left: 0, bottom: 0 }}
