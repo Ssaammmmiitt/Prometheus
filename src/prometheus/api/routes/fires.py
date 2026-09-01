@@ -45,8 +45,11 @@ def router() -> APIRouter:
         limit: int = Query(500, ge=10, le=5000),
     ):
         day = _as_date(as_of) if as_of else date.today()
-        cube = _fire_cube()
-        mask = forest.forest_mask()
+        try:
+            cube = _fire_cube()
+            mask = forest.forest_mask()
+        except FileNotFoundError:
+            return {"type": "FeatureCollection", "features": []}
 
         # Collect detections in the last `lookback_days` days (inclusive).
         feats: list[dict[str, Any]] = []

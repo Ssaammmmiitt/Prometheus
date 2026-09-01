@@ -9,8 +9,8 @@ RUN npm run build
 # ---- Python Backend Stage ----
 FROM python:3.11-slim
 
-# Install system dependencies required by geospatial libraries
-RUN apt-get update && apt-get install -y libexpat1 && rm -rf /var/lib/apt/lists/*
+# Install system dependencies required by geospatial libraries and LightGBM
+RUN apt-get update && apt-get install -y libexpat1 libgomp1 && rm -rf /var/lib/apt/lists/*
 
 # Create user with UID 1000 required by Hugging Face Spaces
 RUN useradd -m -u 1000 user
